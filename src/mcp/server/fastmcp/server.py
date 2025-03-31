@@ -23,6 +23,7 @@ from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.routing import Mount, Route
 
+from mcp.server.fastmcp.auth.backend import BearerTokenBackend
 from mcp.server.fastmcp.exceptions import ResourceError
 from mcp.server.fastmcp.prompts import Prompt, PromptManager
 from mcp.server.fastmcp.resources import FunctionResource, Resource, ResourceManager
@@ -91,13 +92,13 @@ class Settings(BaseSettings, Generic[LifespanResultT]):
     )
 
     lifespan: (
-        Callable[[FastMCP], AbstractAsyncContextManager[LifespanResultT]] | None
+            Callable[[FastMCP], AbstractAsyncContextManager[LifespanResultT]] | None
     ) = Field(None, description="Lifespan context manager")
 
 
 def lifespan_wrapper(
-    app: FastMCP,
-    lifespan: Callable[[FastMCP], AbstractAsyncContextManager[LifespanResultT]],
+        app: FastMCP,
+        lifespan: Callable[[FastMCP], AbstractAsyncContextManager[LifespanResultT]],
 ) -> Callable[[MCPServer[LifespanResultT]], AbstractAsyncContextManager[object]]:
     @asynccontextmanager
     async def wrap(s: MCPServer[LifespanResultT]) -> AsyncIterator[object]:
@@ -109,7 +110,7 @@ def lifespan_wrapper(
 
 class FastMCP:
     def __init__(
-        self, name: str | None = None, instructions: str | None = None, **settings: Any
+            self, name: str | None = None, instructions: str | None = None, **settings: Any
     ):
         self.settings = Settings(**settings)
 
@@ -194,7 +195,7 @@ class FastMCP:
         return Context(request_context=request_context, fastmcp=self)
 
     async def call_tool(
-        self, name: str, arguments: dict[str, Any]
+            self, name: str, arguments: dict[str, Any]
     ) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
         """Call a tool by name with arguments."""
         context = self.get_context()
@@ -242,10 +243,10 @@ class FastMCP:
             raise ResourceError(str(e))
 
     def add_tool(
-        self,
-        fn: AnyFunction,
-        name: str | None = None,
-        description: str | None = None,
+            self,
+            fn: AnyFunction,
+            name: str | None = None,
+            description: str | None = None,
     ) -> None:
         """Add a tool to the server.
 
@@ -260,7 +261,7 @@ class FastMCP:
         self._tool_manager.add_tool(fn, name=name, description=description)
 
     def tool(
-        self, name: str | None = None, description: str | None = None
+            self, name: str | None = None, description: str | None = None
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a tool.
 
@@ -309,12 +310,12 @@ class FastMCP:
         self._resource_manager.add_resource(resource)
 
     def resource(
-        self,
-        uri: str,
-        *,
-        name: str | None = None,
-        description: str | None = None,
-        mime_type: str | None = None,
+            self,
+            uri: str,
+            *,
+            name: str | None = None,
+            description: str | None = None,
+            mime_type: str | None = None,
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a function as a resource.
 
@@ -406,7 +407,7 @@ class FastMCP:
         self._prompt_manager.add_prompt(prompt)
 
     def prompt(
-        self, name: str | None = None, description: str | None = None
+            self, name: str | None = None, description: str | None = None
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a prompt.
 
@@ -483,9 +484,9 @@ class FastMCP:
 
         async def handle_sse(request: Request) -> None:
             async with sse.connect_sse(
-                request.scope,
-                request.receive,
-                request._send,  # type: ignore[reportPrivateUsage]
+                    request.scope,
+                    request.receive,
+                    request._send,  # type: ignore[reportPrivateUsage]
             ) as streams:
                 await self._mcp_server.run(
                     streams[0],
@@ -493,8 +494,13 @@ class FastMCP:
                     self._mcp_server.create_initialization_options(),
                 )
 
+        middleware = [
+            BearerTokenBackend.as_middleware()
+        ]
+
         return Starlette(
             debug=self.settings.debug,
+            middleware=middleware,
             routes=[
                 Route(self.settings.sse_path, endpoint=handle_sse),
                 Mount(self.settings.message_path, app=sse.handle_post_message),
@@ -521,7 +527,7 @@ class FastMCP:
         ]
 
     async def get_prompt(
-        self, name: str, arguments: dict[str, Any] | None = None
+            self, name: str, arguments: dict[str, Any] | None = None
     ) -> GetPromptResult:
         """Get a prompt by name with arguments."""
         try:
@@ -534,7 +540,7 @@ class FastMCP:
 
 
 def _convert_to_content(
-    result: Any,
+        result: Any,
 ) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
     """Convert a result to a sequence of content objects."""
     if result is None:
@@ -547,7 +553,8 @@ def _convert_to_content(
         return [result.to_image_content()]
 
     if isinstance(result, list | tuple):
-        return list(chain.from_iterable(_convert_to_content(item) for item in result))  # type: ignore[reportUnknownVariableType]
+        return list(chain.from_iterable(
+            _convert_to_content(item) for item in result))  # type: ignore[reportUnknownVariableType]
 
     if not isinstance(result, str):
         try:
@@ -596,11 +603,11 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
     _fastmcp: FastMCP | None
 
     def __init__(
-        self,
-        *,
-        request_context: RequestContext[ServerSessionT, LifespanContextT] | None = None,
-        fastmcp: FastMCP | None = None,
-        **kwargs: Any,
+            self,
+            *,
+            request_context: RequestContext[ServerSessionT, LifespanContextT] | None = None,
+            fastmcp: FastMCP | None = None,
+            **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._request_context = request_context
@@ -621,7 +628,7 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
         return self._request_context
 
     async def report_progress(
-        self, progress: float, total: float | None = None
+            self, progress: float, total: float | None = None
     ) -> None:
         """Report progress for the current operation.
 
@@ -653,16 +660,16 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
             The resource content as either text or bytes
         """
         assert (
-            self._fastmcp is not None
+                self._fastmcp is not None
         ), "Context is not available outside of a request"
         return await self._fastmcp.read_resource(uri)
 
     async def log(
-        self,
-        level: Literal["debug", "info", "warning", "error"],
-        message: str,
-        *,
-        logger_name: str | None = None,
+            self,
+            level: Literal["debug", "info", "warning", "error"],
+            message: str,
+            *,
+            logger_name: str | None = None,
     ) -> None:
         """Send a log message to the client.
 

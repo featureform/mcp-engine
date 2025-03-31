@@ -23,7 +23,7 @@ from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.routing import Mount, Route
 
-from mcp.server.fastmcp.auth.backend import BearerTokenBackend
+from mcp.server.auth.backend import BearerTokenBackend
 from mcp.server.fastmcp.exceptions import ResourceError
 from mcp.server.fastmcp.prompts import Prompt, PromptManager
 from mcp.server.fastmcp.resources import FunctionResource, Resource, ResourceManager

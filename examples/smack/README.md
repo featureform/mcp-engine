@@ -1,6 +1,6 @@
-# Smack - Message Storage Service
+# SMACK - Message Storage Service
 
-Smack is a simple messaging service with a persistent message store using PostgreSQL. It's designed to work with the Model Context Protocol (MCP) Inspector for easy testing and interaction.
+SMACK is a simple messaging service with a persistent message store using PostgreSQL. It's designed to work with the Model Context Protocol (MCP) Inspector for easy testing and interaction.
 
 ## Features
 
@@ -11,6 +11,7 @@ Smack is a simple messaging service with a persistent message store using Postgr
 
 - Docker and Docker Compose
 - MCP Inspector (for testing and interaction)
+- npx (optional)
 
 ## Quick Start
 
@@ -18,19 +19,61 @@ Smack is a simple messaging service with a persistent message store using Postgr
 
 2. Start the service using Docker Compose:
    ```bash
-   docker compose up
+   docker-compose up --build
    ```
    This will:
-   - Build and start the Smack server on port 8000
+   - Build and start the SMACK server on port 8000
    - Start a PostgreSQL instance on port 5432
    - Create necessary volumes for data persistence
 
-There are multiple ways to test the server:
-- Using the MCP Inspector (recommended for beginners)
-- Using Claude Desktop
-- Writing your own MCP client
+3. Connect to the service
 
-3. Connect to the service using the MCP Inspector at `localhost:8000`
+    You can use our proxy server to connect SMACK to your client.
+    Navigate to the proxy directory and build the main file:
+    ```bash
+    cd src/mcp/proxy
+    go build main.go
+    ```
+
+    ./main <server-url> [log-file]
+    In this case the server url is http://localhost:8000/sse and the log file can be a file of your choice, to which the logs will be written.
+
+   There are multiple ways to interact with SMACK:
+   
+   ### a. Using the MCP Inspector
+   In a separate terminal run
+
+   ```bash
+   npx @modelcontextprotocol/inspector ./main <server-url> [log-file]
+   ```
+   In this case the server url is http://localhost:8000/sse and the log file can be a file of your choice, to which the logs will be written.
+
+   This will open the MCP inspector in your browser where you can list the tools and interact with the server.
+   
+   ### b. Using Claude Desktop
+   Create the config file if it doesn't exist:
+
+   ```bash
+   touch ~/Library/Application\ Support/Claude/claude_desktop_config.json
+   ```
+   Add the following to the file:
+   ```json
+    {
+        "mcpServers": {
+        "smack_mcp_server": {
+        "command": "path/to/repo/mcp_engine/src/mcp/proxy/main",
+        "args": [
+            "http://localhost:8000/sse", <log-file>
+        ]
+    }
+        }
+    }
+   ```
+
+   Save the file and restart Claude Desktop. You should now see the SMACK server in the list of available servers. 
+   You can now use Claude to send messages and list messages on SMACK.
+
+   ### c. Writing your own MCP client
 
 ## Available Tools
 

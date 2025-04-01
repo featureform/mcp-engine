@@ -44,11 +44,10 @@ async def list_messages(ctx: Context):
     return "\n".join(message_list)
 
 @mcp.tool()
-async def post_message(ctx: Context, message: str):
+async def post_message(ctx: Context, sender: str, message: str):
     app_ctx: AppContext = ctx.request_context.lifespan_context
     db: MessageDB = app_ctx.db
-    SENDER_NAME = "user"
-    success = db.add_message(SENDER_NAME, message)
+    success = db.add_message(sender, message)
     if success:
         return f"Message posted successfully: '{message}'"
     else:

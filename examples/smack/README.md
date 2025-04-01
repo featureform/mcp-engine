@@ -2,6 +2,19 @@
 
 SMACK is a simple messaging service with a persistent message store using PostgreSQL. It's designed to work with the Model Context Protocol (MCP) Inspector for easy testing and interaction.
 
+## Overview
+
+SMACK is built on the MCP Engine, a secure implementation of the Model Context Protocol (MCP) with authentication support. While MCP standardizes interactions between AI models and external systems, early implementations lacked key features for security, scalability, and reliability. MCP Engine addresses these by integrating OAuth 2.1, ensuring secure and seamless communication.
+
+SMACK serves as a practical demonstration of the MCP Engine's capabilities by providing a basic yet functional messaging service. It highlights the importance of authentication and provides a hands-on experience with secure AI interactions.
+
+For a visual representation of the architecture and how SMACK integrates with the MCP Engine, please refer to the diagram below:
+
+
+This diagram illustrates the flow of data and the role of authentication in ensuring secure interactions within the SMACK service.
+
+We encourage you to explore SMACK to understand the critical role of authentication and scalability in MCP-based interactions and to experience firsthand the enhancements brought by the MCP Engine.
+
 ## Features
 
 - Persistent message storage using PostgreSQL

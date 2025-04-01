@@ -12,6 +12,7 @@ from contextlib import (
 )
 from itertools import chain
 from typing import Any, Generic, Literal
+from urllib.parse import urljoin
 
 import anyio
 import pydantic_core
@@ -21,9 +22,10 @@ from pydantic.networks import AnyUrl, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from starlette.applications import Starlette
 from starlette.requests import Request
+from starlette.responses import Response, JSONResponse
 from starlette.routing import Mount, Route
 
-from mcp.server.auth.backend import BearerTokenBackend
+from mcp.server.auth.backend import BearerTokenBackend, OAUTH_WELL_KNOWN_PATH, OPENID_WELL_KNOWN_PATH
 from mcp.server.fastmcp.exceptions import ResourceError
 from mcp.server.fastmcp.prompts import Prompt, PromptManager
 from mcp.server.fastmcp.resources import FunctionResource, Resource, ResourceManager
@@ -499,19 +501,38 @@ class FastMCP:
                     self._mcp_server.create_initialization_options(),
                 )
 
+        import httpx
+        async def handle_well_known(_: Request) -> Response:
+            async with httpx.AsyncClient() as client:
+                issuer_url = str(self.settings.issuer_url).rstrip("/") + "/"
+                well_known_url = urljoin(issuer_url, OAUTH_WELL_KNOWN_PATH)
+                response = await client.get(well_known_url)
+                return JSONResponse(response.json())
+
+        routes = [
+            Route(self.settings.sse_path, endpoint=handle_sse),
+            Mount(self.settings.message_path, app=sse.handle_post_message),
+        ]
         middleware = []
 
         if self.settings.authentication_enabled:
+            # We wrap all the default routes in the auth check.
             backend = BearerTokenBackend(self.settings.issuer_url)
-            middleware.append(backend.as_middleware())
+
+            routes = [
+                Route(f"/{OAUTH_WELL_KNOWN_PATH}", endpoint=handle_well_known),
+                Route(f"/{OPENID_WELL_KNOWN_PATH}", endpoint=handle_well_known),
+                Mount(
+                    "/",
+                    routes=routes,
+                    middleware=[backend.as_middleware()]
+                ),
+            ]
 
         return Starlette(
             debug=self.settings.debug,
             middleware=middleware,
-            routes=[
-                Route(self.settings.sse_path, endpoint=handle_sse),
-                Mount(self.settings.message_path, app=sse.handle_post_message),
-            ],
+            routes=routes,
         )
 
     async def list_prompts(self) -> list[MCPPrompt]:

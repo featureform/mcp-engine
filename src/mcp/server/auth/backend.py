@@ -19,7 +19,8 @@ from mcp.server.fastmcp.utilities.logging import get_logger
 
 logger = get_logger(__name__)
 
-WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
+OPENID_WELL_KNOWN_PATH: str = ".well-known/openid-configuration"
+OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
 
 def on_error(_: HTTPConnection, err: AuthenticationError) -> Response:
@@ -105,7 +106,7 @@ class BearerTokenBackend(AuthenticationBackend):
         # TODO: Cache this stuff
         async with httpx.AsyncClient() as client:
             issuer_url = str(self.issuer_url).rstrip("/") + "/"
-            well_known_url = urljoin(issuer_url, WELL_KNOWN_PATH)
+            well_known_url = urljoin(issuer_url, OAUTH_WELL_KNOWN_PATH)
             response = await client.get(well_known_url)
 
             jwks_url = response.json()["jwks_uri"]

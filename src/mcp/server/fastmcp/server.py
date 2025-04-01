@@ -262,6 +262,7 @@ class FastMCP:
             fn: AnyFunction,
             name: str | None = None,
             description: str | None = None,
+            scopes: list[str] | None = None,
     ) -> None:
         """Add a tool to the server.
 
@@ -272,8 +273,9 @@ class FastMCP:
             fn: The function to register as a tool
             name: Optional name for the tool (defaults to function name)
             description: Optional description of what the tool does
+            scopes: Optional list of scopes required by the tool (defaults to None)
         """
-        self._tool_manager.add_tool(fn, name=name, description=description)
+        self._tool_manager.add_tool(fn, name=name, description=description, scopes=scopes)
 
     def tool(
             self, name: str | None = None, description: str | None = None, scopes: list[str] | None = None
@@ -312,7 +314,7 @@ class FastMCP:
             )
 
         def decorator(fn: AnyFunction) -> AnyFunction:
-            self.add_tool(fn, name=name, description=description)
+            self.add_tool(fn, name=name, description=description, scopes=scopes)
             self.add_scopes(scopes)
             return fn
 
@@ -401,6 +403,7 @@ class FastMCP:
                     uri_template=uri,
                     name=name,
                     description=description,
+                    scopes=scopes,
                     mime_type=mime_type or "text/plain",
                 )
             else:
@@ -409,6 +412,7 @@ class FastMCP:
                     uri=AnyUrl(uri),
                     name=name,
                     description=description,
+                    scopes=scopes,
                     mime_type=mime_type or "text/plain",
                     fn=fn,
                 )
@@ -473,7 +477,7 @@ class FastMCP:
             )
 
         def decorator(func: AnyFunction) -> AnyFunction:
-            prompt = Prompt.from_function(func, name=name, description=description)
+            prompt = Prompt.from_function(func, name=name, description=description, scopes=scopes)
             self.add_prompt(prompt)
             self.add_scopes(scopes)
             return func

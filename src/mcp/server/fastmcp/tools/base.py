@@ -21,10 +21,13 @@ class Tool(BaseModel):
     fn: Callable[..., Any] = Field(exclude=True)
     name: str = Field(description="Name of the tool")
     description: str = Field(description="Description of what the tool does")
+    scopes: list[str] | None = Field(
+        None, description="List of scopes required for this tool"
+    ),
     parameters: dict[str, Any] = Field(description="JSON schema for tool parameters")
     fn_metadata: FuncMetadata = Field(
         description="Metadata about the function including a pydantic model for tool"
-        " arguments"
+                    " arguments"
     )
     is_async: bool = Field(description="Whether the tool is async")
     context_kwarg: str | None = Field(
@@ -33,11 +36,12 @@ class Tool(BaseModel):
 
     @classmethod
     def from_function(
-        cls,
-        fn: Callable[..., Any],
-        name: str | None = None,
-        description: str | None = None,
-        context_kwarg: str | None = None,
+            cls,
+            fn: Callable[..., Any],
+            name: str | None = None,
+            description: str | None = None,
+            scopes: list[str] | None = None,
+            context_kwarg: str | None = None,
     ) -> Tool:
         """Create a Tool from a function."""
         from mcp.server.fastmcp import Context
@@ -67,6 +71,7 @@ class Tool(BaseModel):
             fn=fn,
             name=func_name,
             description=func_doc,
+            scopes=scopes,
             parameters=parameters,
             fn_metadata=func_arg_metadata,
             is_async=is_async,
@@ -74,9 +79,9 @@ class Tool(BaseModel):
         )
 
     async def run(
-        self,
-        arguments: dict[str, Any],
-        context: Context[ServerSessionT, LifespanContextT] | None = None,
+            self,
+            arguments: dict[str, Any],
+            context: Context[ServerSessionT, LifespanContextT] | None = None,
     ) -> Any:
         """Run the tool with arguments."""
         try:

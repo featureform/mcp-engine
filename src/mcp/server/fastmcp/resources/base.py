@@ -26,6 +26,9 @@ class Resource(BaseModel, abc.ABC):
     description: str | None = Field(
         description="Description of the resource", default=None
     )
+    scopes: list[str] | None = Field(
+        None, description="List of scopes required for this resource"
+    ),
     mime_type: str = Field(
         default="text/plain",
         description="MIME type of the resource content",

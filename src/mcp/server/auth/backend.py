@@ -72,11 +72,10 @@ def validate_token(jwks: list, token: str) -> None:
                 "verify_signature": True,
                 "verify_exp": True,
                 # TODO: Re-enable once we figure out how to handle this.
-                # "verify_aud": True,
+                "verify_aud": False,
                 "verify_iat": True,
-                # TODO: Re-enable once we figure out how to handle this.
-                # "verify_iss": True,
-                "require": ["exp", "iat", "iss", "aud"]  # Required claims
+                "verify_iss": True,
+                "require": ["exp", "iat", "iss"],  # , "aud"]  # Required claims
             },
             # audience="",  # Replace with your client ID
             # issuer=""  # Replace with your IdP's issuer URL

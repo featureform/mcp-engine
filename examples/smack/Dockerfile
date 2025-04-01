@@ -12,14 +12,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code
 COPY . .
 
-# Create a volume for persistent database storage
-VOLUME /app/data
-
-# Modify db.py to use the volume path
-RUN sed -i 's|/Users/riddhibagadiaa/Documents/smack-mcp-server/messages.db|/app/data/messages.db|g' db.py
-
 # Expose port for the server
 EXPOSE 8000
+
+# Environment variables for PostgreSQL connection
+ENV DB_HOST=postgres \
+    DB_NAME=smack \
+    DB_USER=postgres \
+    DB_PASSWORD=postgres \
+    DB_PORT=5432
 
 # Command to run the web server
 CMD ["python", "server.py"]

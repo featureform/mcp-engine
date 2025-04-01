@@ -9,7 +9,8 @@ import httpx
 import jwt
 from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
 from pydantic.networks import HttpUrl
-from starlette.authentication import AuthenticationError, AuthenticationBackend, AuthCredentials, BaseUser
+from starlette.authentication import AuthenticationError, AuthCredentials, BaseUser, SimpleUser
+from starlette.datastructures import Headers
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import HTTPConnection
@@ -34,7 +35,7 @@ def on_error(scopes: list[str]) -> Any:
     return wrapped
 
 
-def validate_token(jwks: list, token: str) -> None:
+def validate_token(jwks: list, token: str) -> Any:
     try:
         header = jwt.get_unverified_header(token)
     except Exception as e:
@@ -90,7 +91,9 @@ def validate_token(jwks: list, token: str) -> None:
         raise Exception(f"Error validating token: {str(e)}")
 
 
-class BearerTokenBackend(AuthenticationBackend):
+class BearerTokenBackend:
+    METHODS_SKIP: set[str] = {"initialize", "notifications/initialized"}
+
     issuer_url: HttpUrl
     scopes: set[str]
 
@@ -102,14 +105,17 @@ class BearerTokenBackend(AuthenticationBackend):
         return Middleware(AuthenticationMiddleware, backend=self, on_error=on_error(self.scopes))
 
     async def authenticate(
-            self, conn: HTTPConnection
+            self, method: str, headers: Headers
     ) -> Optional[Tuple[AuthCredentials, BaseUser]]:
-        auth = conn.headers.get("Authorization", None)
+        if method in self.METHODS_SKIP:
+            return None
+
+        auth = headers.get("Authorization", None)
         if auth is None:
             raise AuthenticationError('No valid auth header')
 
         # TODO: Cache this stuff
-        async with (httpx.AsyncClient() as client):
+        async with httpx.AsyncClient() as client:
             issuer_url = str(self.issuer_url).rstrip("/") + "/"
             well_known_url = urljoin(issuer_url, OAUTH_WELL_KNOWN_PATH)
             response = await client.get(well_known_url)
@@ -121,6 +127,12 @@ class BearerTokenBackend(AuthenticationBackend):
                 scheme, token = auth.split()
                 if scheme.lower() != "bearer":
                     raise AuthenticationError(f'Invalid auth schema "{scheme}", must be Bearer')
-                validate_token(jwks_keys, token)
+                decoded_token = validate_token(jwks_keys, token)
+                scopes = decoded_token["scope"].split(" ")
+                sub = decoded_token["sub"]
+                return (
+                    AuthCredentials(scopes),
+                    SimpleUser(sub),
+                )
             except Exception as err:
                 raise AuthenticationError("Invalid bearer auth credentials") from err

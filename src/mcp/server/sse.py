@@ -46,6 +46,7 @@ from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
 import mcp.types as types
+from mcp.server.auth.backend import BearerTokenBackend
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +67,10 @@ class SseServerTransport:
     _read_stream_writers: dict[
         UUID, MemoryObjectSendStream[types.JSONRPCMessage | Exception]
     ]
+    # TODO: Make this generic over backends.
+    _auth_backend: BearerTokenBackend | None
 
-    def __init__(self, endpoint: str) -> None:
+    def __init__(self, endpoint: str, auth_backend: BearerTokenBackend | None = None) -> None:
         """
         Creates a new SSE server transport, which will direct the client to POST
         messages to the relative or absolute URL given.
@@ -76,6 +79,7 @@ class SseServerTransport:
         super().__init__()
         self._endpoint = endpoint
         self._read_stream_writers = {}
+        self._auth_backend = auth_backend
         logger.debug(f"SseServerTransport initialized with endpoint: {endpoint}")
 
     @asynccontextmanager
@@ -131,7 +135,7 @@ class SseServerTransport:
             yield (read_stream, write_stream)
 
     async def handle_post_message(
-        self, scope: Scope, receive: Receive, send: Send
+            self, scope: Scope, receive: Receive, send: Send
     ) -> None:
         logger.debug("Handling POST message")
         request = Request(scope, receive)
@@ -168,6 +172,8 @@ class SseServerTransport:
             await response(scope, receive, send)
             await writer.send(err)
             return
+
+        await self._auth_backend.authenticate(message.root.method, request.headers)
 
         logger.debug(f"Sending message to writer: {message}")
         response = Response("Accepted", status_code=202)

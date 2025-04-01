@@ -508,7 +508,9 @@ class FastMCP:
 
     def sse_app(self) -> Starlette:
         """Return an instance of the SSE server app."""
-        sse = SseServerTransport(self.settings.message_path)
+        auth_backend = BearerTokenBackend(self.settings.issuer_url, self.scopes)
+
+        sse = SseServerTransport(self.settings.message_path, auth_backend)
 
         async def handle_sse(request: Request) -> None:
             async with sse.connect_sse(
@@ -546,7 +548,7 @@ class FastMCP:
                 Mount(
                     "/",
                     routes=routes,
-                    middleware=[backend.as_middleware()],
+                    middleware=[],
                 ),
             ]
 

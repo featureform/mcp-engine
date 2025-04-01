@@ -4,20 +4,17 @@ from typing import List, Optional, Tuple
 import os
 import atexit
 
-class MessagePostgresDB:
+class MessageDB:
     """PostgreSQL database interface for message storage with a single persistent connection."""
-    
-    _instance = None
     _connection = None
     
-    def __new__(cls):
-        """Singleton pattern to ensure only one database instance exists."""
-        if cls._instance is None:
-            cls._instance = super(MessagePostgresDB, cls).__new__(cls)
-            cls._instance._initialize_connection()
+    def __init__(self):
+        """Initialize the database connection if not already initialized."""
+        if not hasattr(self, '_initialized'):
+            self._initialize_connection()
             # Register cleanup function
-            atexit.register(cls._instance._close_connection)
-        return cls._instance
+            atexit.register(self.close_connection)
+            self._initialized = True
     
     def _initialize_connection(self):
         """Initialize the database connection."""
@@ -50,13 +47,25 @@ class MessagePostgresDB:
         except Exception as e:
             print(f"Error connecting to PostgreSQL: {e}")
             self._connection = None
-    
-    def _close_connection(self):
-        """Close the database connection."""
-        if self._connection:
-            self._connection.close()
-            print("PostgreSQL connection closed")
-            self._connection = None
+
+    def _init_db(self) -> None:
+        """Initialize the database and create the messages table if it doesn't exist."""
+        try:
+            cursor = self._connection.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS messages (
+                    id SERIAL PRIMARY KEY,
+                    sender TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            self._connection.commit()
+            cursor.close()
+        except Exception as e:
+            print(f"Error initializing database: {e}")
+            if self._connection:
+                self._connection.rollback()
     
     def _ensure_connection(self):
         """Ensure the connection is active, reconnecting if necessary."""
@@ -77,25 +86,13 @@ class MessagePostgresDB:
         
         return self._connection
 
-    def _init_db(self) -> None:
-        """Initialize the database and create the messages table if it doesn't exist."""
-        try:
-            cursor = self._connection.cursor()
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS messages (
-                    id SERIAL PRIMARY KEY,
-                    sender TEXT NOT NULL,
-                    content TEXT NOT NULL,
-                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            self._connection.commit()
-            cursor.close()
-        except Exception as e:
-            print(f"Error initializing database: {e}")
-            if self._connection:
-                self._connection.rollback()
-
+    def close_connection(self):
+        """Close the database connection."""
+        if self._connection:
+            self._connection.close()
+            print("PostgreSQL connection closed")
+            self._connection = None
+            
     def add_message(self, sender: str, content: str) -> bool:
         """
         Add a new message to the database.
@@ -190,3 +187,4 @@ class MessagePostgresDB:
             if self._connection:
                 self._connection.rollback()
             return False
+        

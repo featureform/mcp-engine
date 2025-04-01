@@ -15,9 +15,9 @@ SMACK is a simple messaging service with a persistent message store using Postgr
 
 ## Quick Start
 
-1. Clone the repository and navigate to the examples/smack directory
+### 1. Clone the repository and navigate to the examples/smack directory
 
-2. Start the service using Docker Compose:
+### 2. Start the service using Docker Compose:
    ```bash
    docker-compose up --build
    ```
@@ -26,7 +26,7 @@ SMACK is a simple messaging service with a persistent message store using Postgr
    - Start a PostgreSQL instance on port 5432
    - Create necessary volumes for data persistence
 
-3. Connect to the service
+### 3. Connect to the service
 
     You can use our proxy server to connect SMACK to your client.
     Navigate to the proxy directory and build the main file:
@@ -35,12 +35,9 @@ SMACK is a simple messaging service with a persistent message store using Postgr
     go build main.go
     ```
 
-    ./main <server-url> [log-file]
-    In this case the server url is http://localhost:8000/sse and the log file can be a file of your choice, to which the logs will be written.
-
    There are multiple ways to interact with SMACK:
    
-   ### a. Using the MCP Inspector
+   #### a. Using the MCP Inspector
    In a separate terminal run
 
    ```bash
@@ -50,7 +47,7 @@ SMACK is a simple messaging service with a persistent message store using Postgr
 
    This will open the MCP inspector in your browser where you can list the tools and interact with the server.
    
-   ### b. Using Claude Desktop
+   #### b. Using Claude Desktop
    Create the config file if it doesn't exist:
 
    ```bash
@@ -73,7 +70,7 @@ SMACK is a simple messaging service with a persistent message store using Postgr
    Save the file and restart Claude Desktop. You should now see the SMACK server in the list of available servers. 
    You can now use Claude to send messages and list messages on SMACK.
 
-   ### c. Writing your own MCP client
+   #### c. Writing your own MCP client
 
 ## Available Tools
 

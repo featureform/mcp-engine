@@ -17,7 +17,7 @@ import anyio
 import pydantic_core
 import uvicorn
 from pydantic import BaseModel, Field
-from pydantic.networks import AnyUrl
+from pydantic.networks import AnyUrl, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -94,6 +94,11 @@ class Settings(BaseSettings, Generic[LifespanResultT]):
     lifespan: (
             Callable[[FastMCP], AbstractAsyncContextManager[LifespanResultT]] | None
     ) = Field(None, description="Lifespan context manager")
+
+    # auth settings
+    authentication_enabled: bool = Field(False,
+                                         description="Enable authentication and authorization for the application")
+    issuer_url: HttpUrl | None = Field(None, description="Url of the issuer, which will be used as the root url")
 
 
 def lifespan_wrapper(
@@ -494,9 +499,11 @@ class FastMCP:
                     self._mcp_server.create_initialization_options(),
                 )
 
-        middleware = [
-            BearerTokenBackend.as_middleware()
-        ]
+        middleware = []
+
+        if self.settings.authentication_enabled:
+            backend = BearerTokenBackend(self.settings.issuer_url)
+            middleware.append(backend.as_middleware())
 
         return Starlette(
             debug=self.settings.debug,

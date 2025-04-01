@@ -139,6 +139,9 @@ class FastMCP:
         )
         self.dependencies = self.settings.dependencies
 
+        # The set of required scopes.
+        self.scopes = set()
+
         # Set up MCP protocol handlers
         self._setup_handlers()
 
@@ -249,6 +252,11 @@ class FastMCP:
             logger.error(f"Error reading resource {uri}: {e}")
             raise ResourceError(str(e))
 
+    def add_scopes(self, scopes: list[str] | None) -> None:
+        if scopes is None:
+            return
+        self.scopes.update(scopes)
+
     def add_tool(
             self,
             fn: AnyFunction,
@@ -268,7 +276,7 @@ class FastMCP:
         self._tool_manager.add_tool(fn, name=name, description=description)
 
     def tool(
-            self, name: str | None = None, description: str | None = None
+            self, name: str | None = None, description: str | None = None, scopes: list[str] | None = None
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a tool.
 
@@ -279,6 +287,7 @@ class FastMCP:
         Args:
             name: Optional name for the tool (defaults to function name)
             description: Optional description of what the tool does
+            scopes: Optional list of scopes required by the tool (defaults to None)
 
         Example:
             @server.tool()
@@ -304,6 +313,7 @@ class FastMCP:
 
         def decorator(fn: AnyFunction) -> AnyFunction:
             self.add_tool(fn, name=name, description=description)
+            self.add_scopes(scopes)
             return fn
 
         return decorator
@@ -323,6 +333,7 @@ class FastMCP:
             name: str | None = None,
             description: str | None = None,
             mime_type: str | None = None,
+            scopes: list[str] | None = None,
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a function as a resource.
 
@@ -340,6 +351,7 @@ class FastMCP:
             name: Optional name for the resource
             description: Optional description of the resource
             mime_type: Optional MIME type for the resource
+            scopes: Optional list of scopes required by the tool (defaults to None)
 
         Example:
             @server.resource("resource://my-resource")
@@ -401,6 +413,9 @@ class FastMCP:
                     fn=fn,
                 )
                 self.add_resource(resource)
+
+            self.add_scopes(scopes)
+
             return fn
 
         return decorator
@@ -414,13 +429,14 @@ class FastMCP:
         self._prompt_manager.add_prompt(prompt)
 
     def prompt(
-            self, name: str | None = None, description: str | None = None
+            self, name: str | None = None, description: str | None = None, scopes: list[str] | None = None
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a prompt.
 
         Args:
             name: Optional name for the prompt (defaults to function name)
             description: Optional description of what the prompt does
+            scopes: Optional list of scopes required by the tool (defaults to None)
 
         Example:
             @server.prompt()
@@ -459,6 +475,7 @@ class FastMCP:
         def decorator(func: AnyFunction) -> AnyFunction:
             prompt = Prompt.from_function(func, name=name, description=description)
             self.add_prompt(prompt)
+            self.add_scopes(scopes)
             return func
 
         return decorator
@@ -517,15 +534,15 @@ class FastMCP:
 
         if self.settings.authentication_enabled:
             # We wrap all the default routes in the auth check.
-            backend = BearerTokenBackend(self.settings.issuer_url)
+            backend = BearerTokenBackend(self.settings.issuer_url, self.scopes)
 
             routes = [
-                Route(f"/{OAUTH_WELL_KNOWN_PATH}", endpoint=handle_well_known),
-                Route(f"/{OPENID_WELL_KNOWN_PATH}", endpoint=handle_well_known),
+                Route(f"/{OAUTH_WELL_KNOWN_PATH}", endpoint=handle_well_known, methods=["GET", "OPTIONS"]),
+                Route(f"/{OPENID_WELL_KNOWN_PATH}", endpoint=handle_well_known, methods=["GET", "OPTIONS"]),
                 Mount(
                     "/",
                     routes=routes,
-                    middleware=[backend.as_middleware()]
+                    middleware=[backend.as_middleware()],
                 ),
             ]
 

@@ -2,7 +2,7 @@
 from __future__ import annotations as _annotations
 
 import json
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 from urllib.parse import urljoin
 
 import httpx
@@ -23,11 +23,15 @@ OPENID_WELL_KNOWN_PATH: str = ".well-known/openid-configuration"
 OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
 
-def on_error(_: HTTPConnection, err: AuthenticationError) -> Response:
-    return Response(
-        content=str(err),
-        status_code=401,
-    )
+def on_error(scopes: list[str]) -> Any:
+    def wrapped(_: HTTPConnection, err: AuthenticationError) -> Response:
+        return Response(
+            status_code=401,
+            content=str(err),
+            headers={"WWW-Authenticate": f"Bearer scope=\"{' '.join(scopes)}\""},
+        )
+
+    return wrapped
 
 
 def validate_token(jwks: list, token: str) -> None:
@@ -89,12 +93,14 @@ def validate_token(jwks: list, token: str) -> None:
 
 class BearerTokenBackend(AuthenticationBackend):
     issuer_url: HttpUrl
+    scopes: set[str]
 
-    def __init__(self, issuer_url: HttpUrl):
+    def __init__(self, issuer_url: HttpUrl, scopes: set[str]):
         self.issuer_url = issuer_url
+        self.scopes = scopes
 
     def as_middleware(self) -> Middleware:
-        return Middleware(AuthenticationMiddleware, backend=self, on_error=on_error)
+        return Middleware(AuthenticationMiddleware, backend=self, on_error=on_error(self.scopes))
 
     async def authenticate(
             self, conn: HTTPConnection
@@ -104,7 +110,7 @@ class BearerTokenBackend(AuthenticationBackend):
             raise AuthenticationError('No valid auth header')
 
         # TODO: Cache this stuff
-        async with httpx.AsyncClient() as client:
+        async with (httpx.AsyncClient() as client):
             issuer_url = str(self.issuer_url).rstrip("/") + "/"
             well_known_url = urljoin(issuer_url, OAUTH_WELL_KNOWN_PATH)
             response = await client.get(well_known_url)

@@ -9,6 +9,7 @@ httpx==0.28.1
 httpx-sse==0.4.0
 idna==3.10
 mcp==1.6.0
+psycopg2-binary==2.9.9
 pydantic==2.11.1
 pydantic-settings==2.8.1
 pydantic_core==2.33.0

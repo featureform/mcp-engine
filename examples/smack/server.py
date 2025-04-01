@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 from mcp.server.fastmcp import FastMCP
-import sys
 from db import MessageDB
 
-# Create FastMCP instance for HTTP mode
 mcp = FastMCP("smack")
 
 @mcp.tool()
@@ -33,6 +31,4 @@ def post_message(message: str):
         return "Failed to post message to database"
 
 if __name__ == "__main__":
-    print("Starting web server on port 8000...", file=sys.stderr)
-    # Run as HTTP server instead of stdio
-    mcp.run(transport='sse')
+    mcp.run(transport='stdio')

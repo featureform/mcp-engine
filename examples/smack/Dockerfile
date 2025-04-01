@@ -22,4 +22,4 @@ RUN sed -i 's|/Users/riddhibagadiaa/Documents/smack-mcp-server/messages.db|/app/
 EXPOSE 8000
 
 # Command to run the web server
-CMD ["python", "web_server.py"]
+CMD ["python", "server.py"]

@@ -30,6 +30,7 @@ SMACK is a simple messaging service with a persistent message store using Postgr
 
     You can use our proxy server to connect SMACK to your client.
     Navigate to the proxy directory and build the main file:
+    
     ```bash
     cd src/mcp/proxy
     go build main.go

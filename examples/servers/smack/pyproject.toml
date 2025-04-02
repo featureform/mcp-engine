@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "SMACK application"
 requires-python = ">=3.10"
 authors = [{ name = "Featureform, Inc." }]
-keywords = ["mcp", "llm", "automation", "web", "fetch"]
+keywords = ["mcpengine", "mcp", "llm", "automation", "web", "fetch"]
 license = { text = "MIT" }
 classifiers = [
     "Development Status :: 4 - Beta",

@@ -1,11 +1,11 @@
 import pytest
 from pydantic import AnyUrl
 
-from mcp.server.fastmcp import FastMCP
-from mcp.shared.memory import (
+from mcpengine import MCPEngine
+from mcpengine.shared.memory import (
     create_connected_server_and_client_session as client_session,
 )
-from mcp.types import (
+from mcpengine.types import (
     ListResourceTemplatesResult,
     TextResourceContents,
 )
@@ -14,7 +14,7 @@ from mcp.types import (
 @pytest.mark.anyio
 async def test_resource_template_edge_cases():
     """Test server-side resource template validation"""
-    mcp = FastMCP("Demo")
+    mcp = MCPEngine("Demo")
 
     # Test case 1: Template with multiple parameters
     @mcp.resource("resource://users/{user_id}/posts/{post_id}")
@@ -69,7 +69,7 @@ async def test_resource_template_edge_cases():
 @pytest.mark.anyio
 async def test_resource_template_client_interaction():
     """Test client-side resource template interaction"""
-    mcp = FastMCP("Demo")
+    mcp = MCPEngine("Demo")
 
     # Register some templated resources
     @mcp.resource("resource://users/{user_id}/posts/{post_id}")

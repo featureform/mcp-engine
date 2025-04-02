@@ -1,10 +1,10 @@
 import anyio
 import pytest
 
-import mcp.types as types
-from mcp.client.session import ClientSession
-from mcp.shared.session import RequestResponder
-from mcp.types import (
+import mcpengine.types as types
+from mcpengine.client.session import ClientSession
+from mcpengine.shared.session import RequestResponder
+from mcpengine.types import (
     LATEST_PROTOCOL_VERSION,
     ClientNotification,
     ClientRequest,

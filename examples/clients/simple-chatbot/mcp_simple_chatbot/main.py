@@ -8,8 +8,8 @@ from typing import Any
 
 import httpx
 from dotenv import load_dotenv
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from mcpengine import ClientSession, StdioServerParameters
+from mcpengine.client.stdio import stdio_client
 
 # Configure logging
 logging.basicConfig(

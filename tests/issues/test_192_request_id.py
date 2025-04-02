@@ -1,9 +1,9 @@
 import anyio
 import pytest
 
-from mcp.server.lowlevel import NotificationOptions, Server
-from mcp.server.models import InitializationOptions
-from mcp.types import (
+from mcpengine.server.lowlevel import NotificationOptions, Server
+from mcpengine.server.models import InitializationOptions
+from mcpengine.types import (
     LATEST_PROTOCOL_VERSION,
     ClientCapabilities,
     Implementation,

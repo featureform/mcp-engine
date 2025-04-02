@@ -1,4 +1,4 @@
-"""Tests for lifespan functionality in both low-level and FastMCP servers."""
+"""Tests for lifespan functionality in both low-level and MCPEngine servers."""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -7,10 +7,10 @@ import anyio
 import pytest
 from pydantic import TypeAdapter
 
-from mcp.server.fastmcp import Context, FastMCP
-from mcp.server.lowlevel.server import NotificationOptions, Server
-from mcp.server.models import InitializationOptions
-from mcp.types import (
+from mcpengine.server.lowlevel.server import NotificationOptions, Server
+from mcpengine.server.mcpengine import Context, MCPEngine
+from mcpengine.server.models import InitializationOptions
+from mcpengine.types import (
     ClientCapabilities,
     Implementation,
     InitializeRequestParams,
@@ -124,11 +124,11 @@ async def test_lowlevel_server_lifespan():
 
 
 @pytest.mark.anyio
-async def test_fastmcp_server_lifespan():
-    """Test that lifespan works in FastMCP server."""
+async def test_mcpengine_server_lifespan():
+    """Test that lifespan works in MCPEngine server."""
 
     @asynccontextmanager
-    async def test_lifespan(server: FastMCP) -> AsyncIterator[dict]:
+    async def test_lifespan(server: MCPEngine) -> AsyncIterator[dict]:
         """Test lifespan context that tracks startup/shutdown."""
         context = {"started": False, "shutdown": False}
         try:
@@ -137,7 +137,7 @@ async def test_fastmcp_server_lifespan():
         finally:
             context["shutdown"] = True
 
-    server = FastMCP("test", lifespan=test_lifespan)
+    server = MCPEngine("test", lifespan=test_lifespan)
 
     # Create memory streams for testing
     send_stream1, receive_stream1 = anyio.create_memory_object_stream(100)

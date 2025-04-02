@@ -1,15 +1,17 @@
 [project]
-name = "mcp"
+name = "mcpengine"
 dynamic = ["version"]
 description = "Model Context Protocol SDK"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{ name = "Anthropic, PBC." }]
+authors = [{ name = "Anthropic, PBC." }, { name = "Featureform, Inc." }]
 maintainers = [
-    { name = "David Soria Parra", email = "davidsp@anthropic.com" },
-    { name = "Justin Spahr-Summers", email = "justin@anthropic.com" },
+    { name = "Simba Khadder", email = "simba@featureform.com" },
+    { name = "Kamal Sadek", email = "kamal@featureform.com" },
+    { name = "Erik Eppel", email = "erik@featureform.com" },
+    { name = "Riddhi Bagadiaa", email = "riddhi@featureform.com" },
 ]
-keywords = ["git", "mcp", "llm", "automation"]
+keywords = ["git", "mcp", "mcpengine", "llm", "automation"]
 license = { text = "MIT" }
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -38,7 +40,7 @@ cli = ["typer>=0.12.4", "python-dotenv>=1.0.0"]
 ws = ["websockets>=15.0.1"]
 
 [project.scripts]
-mcp = "mcp.cli:app [cli]"
+mcpengine = "mcpengine.cli:app [cli]"
 
 [tool.uv]
 resolution = "lowest-direct"
@@ -75,18 +77,18 @@ style = "pep440"
 bump = true
 
 [project.urls]
-Homepage = "https://modelcontextprotocol.io"
-Repository = "https://github.com/modelcontextprotocol/python-sdk"
-Issues = "https://github.com/modelcontextprotocol/python-sdk/issues"
+Homepage = "https://www.featureform.com"
+Repository = "https://github.com/featureform/mcp-engine"
+Issues = "https://github.com/featureform/mcp-engine/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mcp"]
+packages = ["src/mcpengine"]
 
 [tool.pyright]
-include = ["src/mcp", "tests"]
+include = ["src/mcpengine", "tests"]
 venvPath = "."
 venv = ".venv"
-strict = ["src/mcp/**/*.py"]
+strict = ["src/mcpengine/**/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
@@ -98,13 +100,13 @@ target-version = "py310"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
-"tests/server/fastmcp/test_func_metadata.py" = ["E501"]
+"tests/server/mcpengine/test_func_metadata.py" = ["E501"]
 
 [tool.uv.workspace]
 members = ["examples/servers/*"]
 
 [tool.uv.sources]
-mcp = { workspace = true }
+mcpengine = { workspace = true }
 
 [tool.pytest.ini_options]
 xfail_strict = true
@@ -113,5 +115,5 @@ filterwarnings = [
     # This should be fixed on Uvicorn's side.
     "ignore::DeprecationWarning:websockets",
     "ignore:websockets.server.WebSocketServerProtocol is deprecated:DeprecationWarning",
-    "ignore:Returning str or bytes.*:DeprecationWarning:mcp.server.lowlevel"
+    "ignore:Returning str or bytes.*:DeprecationWarning:mcpengine.server.lowlevel"
 ]

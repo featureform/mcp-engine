@@ -7,7 +7,7 @@ This example demonstrates how to integrate the Model Context Protocol (MCP) into
 - Python 3.10
 - `python-dotenv`
 - `requests`
-- `mcp`
+- `mcpengine`
 - `uvicorn`
 
 ## Installation

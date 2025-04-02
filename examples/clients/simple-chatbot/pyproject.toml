@@ -5,7 +5,7 @@ description = "A simple CLI chatbot using the Model Context Protocol (MCP)"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Edoardo Cilia" }]
-keywords = ["mcp", "llm", "chatbot", "cli"]
+keywords = ["mcp", "mcpengine", "llm", "chatbot", "cli"]
 license = { text = "MIT" }
 classifiers = [
     "Development Status :: 4 - Beta",

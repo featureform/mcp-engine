@@ -1,6 +1,6 @@
 import pytest
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 pytestmark = pytest.mark.anyio
 

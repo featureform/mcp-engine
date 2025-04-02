@@ -3,7 +3,7 @@ Example MCPEngine server that uses Unicode characters in various places to help 
 Unicode handling in tools and inspectors.
 """
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 mcp = MCPEngine()
 

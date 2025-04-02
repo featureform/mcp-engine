@@ -6,7 +6,7 @@ Give Claude a tool to capture and view screenshots.
 
 import io
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 from mcpengine.server.mcpengine.utilities.types import Image
 
 # Create server

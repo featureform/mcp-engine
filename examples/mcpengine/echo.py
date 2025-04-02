@@ -2,7 +2,7 @@
 MCPEngine Echo Server
 """
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 # Create server
 mcp = MCPEngine("Echo Server")

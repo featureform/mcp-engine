@@ -8,7 +8,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 mcp = MCPEngine("Shrimp Tank")
 

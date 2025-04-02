@@ -4,7 +4,7 @@ MCPEngine Example showing parameter descriptions
 
 from pydantic import Field
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 # Create server
 mcp = MCPEngine("Parameter Descriptions Server")

@@ -1,7 +1,6 @@
 import pytest
 
-from mcpengine import types
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine, types
 
 
 @pytest.mark.anyio

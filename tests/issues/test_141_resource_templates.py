@@ -1,7 +1,7 @@
 import pytest
 from pydantic import AnyUrl
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 from mcpengine.shared.memory import (
     create_connected_server_and_client_session as client_session,
 )

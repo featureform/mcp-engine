@@ -24,7 +24,7 @@ import httpx
 from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 
 class SurgeSettings(BaseSettings):

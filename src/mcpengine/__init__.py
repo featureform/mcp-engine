@@ -1,5 +1,6 @@
 from .client.session import ClientSession
 from .client.stdio import StdioServerParameters, stdio_client
+from .server.mcpengine import Context, MCPEngine
 from .server.session import ServerSession
 from .server.stdio import stdio_server
 from .shared.exceptions import McpError
@@ -111,4 +112,6 @@ __all__ = [
     "stdio_server",
     "CompleteRequest",
     "JSONRPCResponse",
+    "MCPEngine",
+    "Context",
 ]

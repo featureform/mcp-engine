@@ -98,7 +98,7 @@ Let's create a simple MCP server that exposes a calculator tool and some data:
 
 ```python
 # server.py
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 # Create an MCP server
 mcp = MCPEngine("Demo")
@@ -194,7 +194,7 @@ def query_db(ctx: Context) -> str:
 Resources are how you expose data to LLMs. They're similar to GET endpoints in a REST API - they provide data but shouldn't perform significant computation or have side effects:
 
 ```python
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 mcp = MCPEngine("My App")
 
@@ -217,7 +217,7 @@ Tools let LLMs take actions through your server. Unlike resources, tools are exp
 
 ```python
 import httpx
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 mcp = MCPEngine("My App")
 
@@ -241,7 +241,7 @@ async def fetch_weather(city: str) -> str:
 Prompts are reusable templates that help LLMs interact with your server effectively:
 
 ```python
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 from mcp.server.mcpengine.prompts import base
 
 mcp = MCPEngine("My App")
@@ -336,7 +336,7 @@ mcp install server.py -f .env
 For advanced scenarios like custom deployments:
 
 ```python
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 mcp = MCPEngine("My App")
 
@@ -358,7 +358,7 @@ You can mount the SSE server to an existing ASGI server using the `sse_app` meth
 ```python
 from starlette.applications import Starlette
 from starlette.routing import Mount, Host
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 
 mcp = MCPEngine("My App")
@@ -383,7 +383,7 @@ For more information on mounting applications in Starlette, see the [Starlette d
 A simple server demonstrating resources, tools, and prompts:
 
 ```python
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 mcp = MCPEngine("Echo")
 
@@ -413,7 +413,7 @@ A more complex example showing database integration:
 ```python
 import sqlite3
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 mcp = MCPEngine("SQLite Explorer")
 

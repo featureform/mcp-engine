@@ -1,4 +1,4 @@
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 # Create an MCP server
 mcp = MCPEngine("Demo")

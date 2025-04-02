@@ -3,7 +3,7 @@
 import pytest
 from pydantic import Field
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 
 @pytest.mark.anyio

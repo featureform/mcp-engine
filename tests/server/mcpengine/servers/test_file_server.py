@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 
 @pytest.fixture()

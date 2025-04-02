@@ -25,7 +25,7 @@ from pgvector.asyncpg import register_vector  # Import register_vector
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from mcpengine.server.mcpengine import MCPEngine
+from mcpengine import MCPEngine
 
 MAX_DEPTH = 5
 SIMILARITY_THRESHOLD = 0.7

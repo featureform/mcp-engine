@@ -79,7 +79,7 @@ func (mcp *MCPEngine) runWorkersAndWait(ctx context.Context, workers map[string]
 			defer wg.Done()
 			logger.Debugw("Starting worker", "worker-name", name)
 			err := constWorker.Run(ctx)
-			mcp.logger.Info("Worker exited with error: %s", err)
+			mcp.logger.Infow("Worker exited with error", "worker-name", name, "err", err)
 		}()
 	}
 	wg.Wait()
@@ -129,7 +129,7 @@ func (fr *FileReader) Run(ctx context.Context) error {
 		fr.logger.Errorf("Error reading file: %v", err)
 		return err
 	}
-	return nil
+	return io.EOF
 }
 
 // HTTPPostSender waits for an endpoint from its endpoint channel and then posts
@@ -388,7 +388,7 @@ func (sw *SSEWorker) Run(ctx context.Context) error {
 			sw.logger.Errorf("Failed to subscribe to SSE: %v", err)
 		}
 	}()
-	defer close(msgChan)
+	// defer close(msgChan)
 
 	endpointSent := false
 	for {

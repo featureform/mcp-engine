@@ -18,6 +18,7 @@ We encourage you to explore SMACK to understand the critical role of authenticat
 
 ## Features
 
+- OAuth 2.1 authentication
 - Persistent message storage using PostgreSQL
 - Docker containerization for easy deployment
 
@@ -55,9 +56,9 @@ We encourage you to explore SMACK to understand the critical role of authenticat
    In a separate terminal run
 
    ```bash
-   npx @modelcontextprotocol/inspector ./main <server-url> [log-file]
+   npx @modelcontextprotocol/inspector ./main <server-url>
    ```
-   In this case the server url is http://localhost:8000/sse and the log file can be a file of your choice, to which the logs will be written.
+   In this case the server url is http://localhost:8000/sse.
 
    This will open the MCP inspector in your browser where you can list the tools and interact with the server.
    
@@ -74,7 +75,7 @@ We encourage you to explore SMACK to understand the critical role of authenticat
         "smack_mcp_server": {
         "command": "path/to/repo/mcp_engine/src/mcp/proxy/main",
         "args": [
-            "http://localhost:8000/sse", <log-file>
+            "http://localhost:8000/sse"
         ]
     }
         }
@@ -83,8 +84,6 @@ We encourage you to explore SMACK to understand the critical role of authenticat
 
    Save the file and restart Claude Desktop. You should now see the SMACK server in the list of available servers. 
    You can now use Claude to send messages and list messages on SMACK.
-
-   #### c. Writing your own MCP client
 
 ## Available Tools
 

@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mcpengine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mcpengine:latest
+    container_name: mcpengine
+    restart: unless-stopped
+    ports:
+      - "8181:8181"  # Auth callback port
+    environment:
+      - HOST=localhost:8000
+      - SSE_PATH=/sse
+      - DEBUG=false
+      - CLIENT_ID=${CLIENT_ID:-}  # Set via .env file or environment variable
+      - CLIENT_SECRET=${CLIENT_SECRET:-}  # Set via .env file or environment variable
+    # Command-line arguments passed directly to the application
+    command: [
+      "-host", "${HOST:-localhost:8000}", 
+      "-sse_path", "${SSE_PATH:-/sse}", 
+      "-debug", "${DEBUG:-false}",
+      "-client_id", "${CLIENT_ID:-}",
+      "-client_secret", "${CLIENT_SECRET:-}"
+    ]
+    stdin_open: true  # Keep STDIN open for input
+    tty: true  # Allocate a pseudo-TTY
+    healthcheck:
+      test: ["CMD", "/app/mcpengine", "-help"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

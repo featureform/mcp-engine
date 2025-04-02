@@ -1,5 +1,5 @@
-from .fastmcp import FastMCP
+from .mcpengine import MCPEngine
 from .lowlevel import NotificationOptions, Server
 from .models import InitializationOptions
 
-__all__ = ["Server", "FastMCP", "NotificationOptions", "InitializationOptions"]
+__all__ = ["Server", "MCPEngine", "NotificationOptions", "InitializationOptions"]

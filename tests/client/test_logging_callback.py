@@ -23,9 +23,9 @@ class LoggingCollector:
 
 @pytest.mark.anyio
 async def test_logging_callback():
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server.mcpengine import MCPEngine
 
-    server = FastMCP("test")
+    server = MCPEngine("test")
     logging_collector = LoggingCollector()
 
     # Create a simple test tool
@@ -49,9 +49,11 @@ async def test_logging_callback():
 
     # Create a message handler to catch exceptions
     async def message_handler(
-        message: RequestResponder[types.ServerRequest, types.ClientResult]
-        | types.ServerNotification
-        | Exception,
+        message: (
+            RequestResponder[types.ServerRequest, types.ClientResult]
+            | types.ServerNotification
+            | Exception
+        ),
     ) -> None:
         if isinstance(message, Exception):
             raise message

@@ -4,7 +4,7 @@ dynamic = ["version"]
 description = "Model Context Protocol SDK"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{ name = "Anthropic, PBC." }]
+authors = [{ name = "Anthropic, PBC." }, { name = "Featureform, Inc." }]
 maintainers = [
     { name = "David Soria Parra", email = "davidsp@anthropic.com" },
     { name = "Justin Spahr-Summers", email = "justin@anthropic.com" },
@@ -98,7 +98,7 @@ target-version = "py310"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
-"tests/server/fastmcp/test_func_metadata.py" = ["E501"]
+"tests/server/mcpengine/test_func_metadata.py" = ["E501"]
 
 [tool.uv.workspace]
 members = ["examples/servers/*"]

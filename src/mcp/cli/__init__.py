@@ -1,4 +1,4 @@
-"""FastMCP CLI package."""
+"""MCPEngine CLI package."""
 
 from .cli import app
 

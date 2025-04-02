@@ -80,6 +80,7 @@ uv add "mcp[cli]"
 ```
 
 Alternatively, for projects using pip for dependencies:
+
 ```bash
 pip install "mcp[cli]"
 ```
@@ -98,10 +99,10 @@ Let's create a simple MCP server that exposes a calculator tool and some data:
 
 ```python
 # server.py
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpengine import MCPEngine
 
 # Create an MCP server
-mcp = FastMCP("Demo")
+mcp = MCPEngine("Demo")
 
 
 # Add an addition tool
@@ -119,11 +120,13 @@ def get_greeting(name: str) -> str:
 ```
 
 You can install this server in [Claude Desktop](https://claude.ai/download) and interact with it right away by running:
+
 ```bash
 mcp install server.py
 ```
 
 Alternatively, you can test it with the MCP Inspector:
+
 ```bash
 mcp dev server.py
 ```
@@ -141,7 +144,7 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) lets you bui
 
 ### Server
 
-The FastMCP server is your core interface to the MCP protocol. It handles connection management, protocol compliance, and message routing:
+The MCPEngine server is your core interface to the MCP protocol. It handles connection management, protocol compliance, and message routing:
 
 ```python
 # Add lifespan support for startup/shutdown with strong typing
@@ -151,13 +154,13 @@ from dataclasses import dataclass
 
 from fake_database import Database  # Replace with your actual DB type
 
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.mcpengine import Context, MCPEngine
 
 # Create a named server
-mcp = FastMCP("My App")
+mcp = MCPEngine("My App")
 
 # Specify dependencies for deployment and development
-mcp = FastMCP("My App", dependencies=["pandas", "numpy"])
+mcp = MCPEngine("My App", dependencies=["pandas", "numpy"])
 
 
 @dataclass
@@ -166,7 +169,7 @@ class AppContext:
 
 
 @asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
+async def app_lifespan(server: MCPEngine) -> AsyncIterator[AppContext]:
     """Manage application lifecycle with type-safe context"""
     # Initialize on startup
     db = await Database.connect()
@@ -178,7 +181,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 
 
 # Pass lifespan to server
-mcp = FastMCP("My App", lifespan=app_lifespan)
+mcp = MCPEngine("My App", lifespan=app_lifespan)
 
 
 # Access type-safe lifespan context in tools
@@ -194,9 +197,9 @@ def query_db(ctx: Context) -> str:
 Resources are how you expose data to LLMs. They're similar to GET endpoints in a REST API - they provide data but shouldn't perform significant computation or have side effects:
 
 ```python
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpengine import MCPEngine
 
-mcp = FastMCP("My App")
+mcp = MCPEngine("My App")
 
 
 @mcp.resource("config://app")
@@ -217,9 +220,9 @@ Tools let LLMs take actions through your server. Unlike resources, tools are exp
 
 ```python
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpengine import MCPEngine
 
-mcp = FastMCP("My App")
+mcp = MCPEngine("My App")
 
 
 @mcp.tool()
@@ -241,10 +244,10 @@ async def fetch_weather(city: str) -> str:
 Prompts are reusable templates that help LLMs interact with your server effectively:
 
 ```python
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.prompts import base
+from mcp.server.mcpengine import MCPEngine
+from mcp.server.mcpengine.prompts import base
 
-mcp = FastMCP("My App")
+mcp = MCPEngine("My App")
 
 
 @mcp.prompt()
@@ -263,13 +266,13 @@ def debug_error(error: str) -> list[base.Message]:
 
 ### Images
 
-FastMCP provides an `Image` class that automatically handles image data:
+MCPEngine provides an `Image` class that automatically handles image data:
 
 ```python
-from mcp.server.fastmcp import FastMCP, Image
+from mcp.server.mcpengine import MCPEngine, Image
 from PIL import Image as PILImage
 
-mcp = FastMCP("My App")
+mcp = MCPEngine("My App")
 
 
 @mcp.tool()
@@ -285,9 +288,9 @@ def create_thumbnail(image_path: str) -> Image:
 The Context object gives your tools and resources access to MCP capabilities:
 
 ```python
-from mcp.server.fastmcp import FastMCP, Context
+from mcp.server.mcpengine import MCPEngine, Context
 
-mcp = FastMCP("My App")
+mcp = MCPEngine("My App")
 
 
 @mcp.tool()
@@ -336,15 +339,16 @@ mcp install server.py -f .env
 For advanced scenarios like custom deployments:
 
 ```python
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpengine import MCPEngine
 
-mcp = FastMCP("My App")
+mcp = MCPEngine("My App")
 
 if __name__ == "__main__":
     mcp.run()
 ```
 
 Run it with:
+
 ```bash
 python server.py
 # or
@@ -358,10 +362,10 @@ You can mount the SSE server to an existing ASGI server using the `sse_app` meth
 ```python
 from starlette.applications import Starlette
 from starlette.routing import Mount, Host
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpengine import MCPEngine
 
 
-mcp = FastMCP("My App")
+mcp = MCPEngine("My App")
 
 # Mount the SSE server to the existing ASGI server
 app = Starlette(
@@ -383,9 +387,9 @@ For more information on mounting applications in Starlette, see the [Starlette d
 A simple server demonstrating resources, tools, and prompts:
 
 ```python
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpengine import MCPEngine
 
-mcp = FastMCP("Echo")
+mcp = MCPEngine("Echo")
 
 
 @mcp.resource("echo://{message}")
@@ -413,9 +417,9 @@ A more complex example showing database integration:
 ```python
 import sqlite3
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpengine import MCPEngine
 
-mcp = FastMCP("SQLite Explorer")
+mcp = MCPEngine("SQLite Explorer")
 
 
 @mcp.resource("schema://main")
@@ -477,6 +481,7 @@ async def query_db(name: str, arguments: dict) -> list:
 ```
 
 The lifespan API provides:
+
 - A way to initialize resources when the server starts and clean them up when it stops
 - Access to initialized resources through the request context in handlers
 - Type-safe context passing between lifespan and request handlers

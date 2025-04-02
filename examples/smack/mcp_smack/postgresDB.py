@@ -157,7 +157,7 @@ class MessageDB:
                 except:
                     pass
 
-    async def close_connection(self):
+    def close_connection(self):
         """Close the database connection pool."""
         if self._connection_pool:
             try:

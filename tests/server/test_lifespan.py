@@ -7,8 +7,8 @@ import anyio
 import pytest
 from pydantic import TypeAdapter
 
-from mcp.server.mcpengine import Context, MCPEngine
 from mcp.server.lowlevel.server import NotificationOptions, Server
+from mcp.server.mcpengine import Context, MCPEngine
 from mcp.server.models import InitializationOptions
 from mcp.types import (
     ClientCapabilities,

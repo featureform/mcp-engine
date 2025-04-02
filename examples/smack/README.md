@@ -99,10 +99,11 @@ Retrieves all posted messages from the database.
 ...
 ```
 
-### `post_message(message: str)`
+### `post_message(sender: str, message: str)`
 Posts a new message to the database.
 
 **Parameters:**
+- `sender`: The sender of the message
 - `message`: The text content you want to post
 
 **Response:**

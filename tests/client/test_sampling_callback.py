@@ -15,9 +15,9 @@ from mcpengine.types import (
 
 @pytest.mark.anyio
 async def test_sampling_callback():
-    from mcpengine.server.fastmcp import FastMCP
+    from mcpengine.server.mcpengine import MCPEngine
 
-    server = FastMCP("test")
+    server = MCPEngine("test")
 
     callback_return = CreateMessageResult(
         role="assistant",

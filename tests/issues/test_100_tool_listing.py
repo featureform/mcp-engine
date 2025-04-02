@@ -1,12 +1,12 @@
 import pytest
 
-from mcpengine.server.fastmcp import FastMCP
+from mcpengine.server.mcpengine import MCPEngine
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_list_tools_returns_all_tools():
-    mcp = FastMCP("TestTools")
+    mcp = MCPEngine("TestTools")
 
     # Create 100 tools with unique names
     num_tools = 100

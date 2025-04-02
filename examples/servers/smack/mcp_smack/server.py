@@ -2,7 +2,7 @@
 """
 Smack Messaging Server
 
-A FastMCP-based messaging service that provides
+A MCPEngine-based messaging service that provides
 message listing and posting capabilities.
 """
 
@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.mcpengine import Context, MCPEngine
 
 from .db import MessageDB
 
@@ -31,12 +31,12 @@ class AppContext:
 
 
 @asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
+async def app_lifespan(server: MCPEngine) -> AsyncIterator[AppContext]:
     """
     Manage application lifecycle with type-safe context.
 
     Args:
-        server: The FastMCP server instance
+        server: The MCPEngine server instance
 
     Yields:
         AppContext: The application context with initialized resources
@@ -56,7 +56,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
             logger.error(f"Error closing database connection: {e}")
 
 
-mcp = FastMCP("smack", lifespan=app_lifespan)
+mcp = MCPEngine("smack", lifespan=app_lifespan)
 
 
 @mcp.tool()

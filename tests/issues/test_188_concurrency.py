@@ -2,7 +2,7 @@ import anyio
 import pytest
 from pydantic import AnyUrl
 
-from mcpengine.server.fastmcp import FastMCP
+from mcpengine.server.mcpengine import MCPEngine
 from mcpengine.shared.memory import (
     create_connected_server_and_client_session as create_session,
 )
@@ -13,7 +13,7 @@ _resource_name = "slow://slow_resource"
 
 @pytest.mark.anyio
 async def test_messages_are_executed_concurrently():
-    server = FastMCP("test")
+    server = MCPEngine("test")
 
     @server.tool("sleep")
     async def sleep_tool():

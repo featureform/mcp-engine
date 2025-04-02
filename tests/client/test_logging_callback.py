@@ -23,9 +23,9 @@ class LoggingCollector:
 
 @pytest.mark.anyio
 async def test_logging_callback():
-    from mcpengine.server.fastmcp import FastMCP
+    from mcpengine.server.mcpengine import MCPEngine
 
-    server = FastMCP("test")
+    server = MCPEngine("test")
     logging_collector = LoggingCollector()
 
     # Create a simple test tool

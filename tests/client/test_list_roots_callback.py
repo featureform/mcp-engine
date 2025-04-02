@@ -2,7 +2,7 @@ import pytest
 from pydantic import FileUrl
 
 from mcpengine.client.session import ClientSession
-from mcpengine.server.fastmcp.server import Context
+from mcpengine.server.mcpengine.server import Context
 from mcpengine.shared.context import RequestContext
 from mcpengine.shared.memory import (
     create_connected_server_and_client_session as create_session,
@@ -12,9 +12,9 @@ from mcpengine.types import ListRootsResult, Root, TextContent
 
 @pytest.mark.anyio
 async def test_list_roots_callback():
-    from mcpengine.server.fastmcp import FastMCP
+    from mcpengine.server.mcpengine import MCPEngine
 
-    server = FastMCP("test")
+    server = MCPEngine("test")
 
     callback_return = ListRootsResult(
         roots=[

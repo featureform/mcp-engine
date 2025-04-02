@@ -16,9 +16,9 @@ except ImportError:
 
 try:
     from mcpengine.cli import claude
-    from mcpengine.server.fastmcp.utilities.logging import get_logger
+    from mcpengine.server.mcpengine.utilities.logging import get_logger
 except ImportError:
-    print("Error: mcpengine.server.fastmcp is not installed or not in PYTHONPATH")
+    print("Error: mcpengine.server.mcpengine is not installed or not in PYTHONPATH")
     sys.exit(1)
 
 try:

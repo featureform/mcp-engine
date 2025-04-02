@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from mcpengine.server.fastmcp import Context
+from mcpengine.server.mcpengine import Context
 from mcpengine.shared.context import RequestContext
 
 pytestmark = pytest.mark.anyio
@@ -27,7 +27,7 @@ async def test_progress_token_zero_first_call():
     )
 
     # Create context with our mocks
-    ctx = Context(request_context=request_context, fastmcp=MagicMock())
+    ctx = Context(request_context=request_context, mcpengine=MagicMock())
 
     # Test progress reporting
     await ctx.report_progress(0, 10)  # First call with 0

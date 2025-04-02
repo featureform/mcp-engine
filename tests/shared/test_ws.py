@@ -10,12 +10,12 @@ from pydantic import AnyUrl
 from starlette.applications import Starlette
 from starlette.routing import WebSocketRoute
 
-from mcp.client.session import ClientSession
-from mcp.client.websocket import websocket_client
-from mcp.server import Server
-from mcp.server.websocket import websocket_server
-from mcp.shared.exceptions import McpError
-from mcp.types import (
+from mcpengine.client.session import ClientSession
+from mcpengine.client.websocket import websocket_client
+from mcpengine.server import Server
+from mcpengine.server.websocket import websocket_server
+from mcpengine.shared.exceptions import McpError
+from mcpengine.types import (
     EmptyResult,
     ErrorData,
     InitializeResult,

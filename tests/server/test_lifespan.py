@@ -7,10 +7,10 @@ import anyio
 import pytest
 from pydantic import TypeAdapter
 
-from mcp.server.fastmcp import Context, FastMCP
-from mcp.server.lowlevel.server import NotificationOptions, Server
-from mcp.server.models import InitializationOptions
-from mcp.types import (
+from mcpengine.server.fastmcp import Context, FastMCP
+from mcpengine.server.lowlevel.server import NotificationOptions, Server
+from mcpengine.server.models import InitializationOptions
+from mcpengine.types import (
     ClientCapabilities,
     Implementation,
     InitializeRequestParams,

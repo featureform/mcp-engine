@@ -8,10 +8,10 @@ import anyio
 import pytest
 from anyio.abc import TaskStatus
 
-from mcp.client.session import ClientSession
-from mcp.server.lowlevel import Server
-from mcp.shared.exceptions import McpError
-from mcp.types import (
+from mcpengine.client.session import ClientSession
+from mcpengine.server.lowlevel import Server
+from mcpengine.shared.exceptions import McpError
+from mcpengine.types import (
     EmbeddedResource,
     ImageContent,
     TextContent,

@@ -3,11 +3,11 @@ import base64
 import pytest
 from pydantic import AnyUrl
 
-from mcp import types
-from mcp.server.fastmcp import FastMCP
-from mcp.server.lowlevel import Server
-from mcp.server.lowlevel.helper_types import ReadResourceContents
-from mcp.shared.memory import (
+from mcpengine import types
+from mcpengine.server.fastmcp import FastMCP
+from mcpengine.server.lowlevel import Server
+from mcpengine.server.lowlevel.helper_types import ReadResourceContents
+from mcpengine.shared.memory import (
     create_connected_server_and_client_session as client_session,
 )
 

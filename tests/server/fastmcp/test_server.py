@@ -5,15 +5,15 @@ from typing import TYPE_CHECKING
 import pytest
 from pydantic import AnyUrl
 
-from mcp.server.fastmcp import Context, FastMCP
-from mcp.server.fastmcp.prompts.base import EmbeddedResource, Message, UserMessage
-from mcp.server.fastmcp.resources import FileResource, FunctionResource
-from mcp.server.fastmcp.utilities.types import Image
-from mcp.shared.exceptions import McpError
-from mcp.shared.memory import (
+from mcpengine.server.fastmcp import Context, FastMCP
+from mcpengine.server.fastmcp.prompts.base import EmbeddedResource, Message, UserMessage
+from mcpengine.server.fastmcp.resources import FileResource, FunctionResource
+from mcpengine.server.fastmcp.utilities.types import Image
+from mcpengine.shared.exceptions import McpError
+from mcpengine.shared.memory import (
     create_connected_server_and_client_session as client_session,
 )
-from mcp.types import (
+from mcpengine.types import (
     BlobResourceContents,
     ImageContent,
     TextContent,
@@ -21,7 +21,7 @@ from mcp.types import (
 )
 
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import Context
+    from mcpengine.server.fastmcp import Context
 
 
 class TestServer:
@@ -520,10 +520,10 @@ class TestContextInjection:
     async def test_context_logging(self):
         from unittest.mock import patch
 
-        import mcp.server.session
+        import mcpengine.server.session
 
         """Test that context logging methods work."""
-        mcp = FastMCP()
+        mcpengine = FastMCP()
 
         async def logging_tool(msg: str, ctx: Context) -> str:
             await ctx.debug("Debug message")
@@ -532,10 +532,11 @@ class TestContextInjection:
             await ctx.error("Error message")
             return f"Logged messages for {msg}"
 
-        mcp.add_tool(logging_tool)
+        mcpengine.add_tool(logging_tool)
 
-        with patch("mcp.server.session.ServerSession.send_log_message") as mock_log:
-            async with client_session(mcp._mcp_server) as client:
+        mock_log_path = "mcpengine.server.session.ServerSession.send_log_message"
+        with patch(mock_log_path) as mock_log:
+            async with client_session(mcpengine._mcp_server) as client:
                 result = await client.call_tool("logging_tool", {"msg": "test"})
                 assert len(result.content) == 1
                 content = result.content[0]

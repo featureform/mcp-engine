@@ -3,10 +3,10 @@
 import pytest
 from pytest_examples import CodeExample, EvalExample, find_examples
 
-from mcp.shared.memory import (
+from mcpengine.shared.memory import (
     create_connected_server_and_client_session as client_session,
 )
-from mcp.types import TextContent, TextResourceContents
+from mcpengine.types import TextContent, TextResourceContents
 
 
 @pytest.mark.anyio

@@ -2,8 +2,8 @@ import shutil
 
 import pytest
 
-from mcp.client.stdio import StdioServerParameters, stdio_client
-from mcp.types import JSONRPCMessage, JSONRPCRequest, JSONRPCResponse
+from mcpengine.client.stdio import StdioServerParameters, stdio_client
+from mcpengine.types import JSONRPCMessage, JSONRPCRequest, JSONRPCResponse
 
 tee: str = shutil.which("tee")  # type: ignore
 

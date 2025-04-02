@@ -98,7 +98,7 @@ Let's create a simple MCP server that exposes a calculator tool and some data:
 
 ```python
 # server.py
-from mcp.server.fastmcp import FastMCP
+from mcpengine.server.fastmcp import FastMCP
 
 # Create an MCP server
 mcp = FastMCP("Demo")
@@ -194,7 +194,7 @@ def query_db(ctx: Context) -> str:
 Resources are how you expose data to LLMs. They're similar to GET endpoints in a REST API - they provide data but shouldn't perform significant computation or have side effects:
 
 ```python
-from mcp.server.fastmcp import FastMCP
+from mcpengine.server.fastmcp import FastMCP
 
 mcp = FastMCP("My App")
 
@@ -217,7 +217,7 @@ Tools let LLMs take actions through your server. Unlike resources, tools are exp
 
 ```python
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcpengine.server.fastmcp import FastMCP
 
 mcp = FastMCP("My App")
 
@@ -241,7 +241,7 @@ async def fetch_weather(city: str) -> str:
 Prompts are reusable templates that help LLMs interact with your server effectively:
 
 ```python
-from mcp.server.fastmcp import FastMCP
+from mcpengine.server.fastmcp import FastMCP
 from mcp.server.fastmcp.prompts import base
 
 mcp = FastMCP("My App")
@@ -266,7 +266,7 @@ def debug_error(error: str) -> list[base.Message]:
 FastMCP provides an `Image` class that automatically handles image data:
 
 ```python
-from mcp.server.fastmcp import FastMCP, Image
+from mcpengine.server.fastmcp import FastMCP, Image
 from PIL import Image as PILImage
 
 mcp = FastMCP("My App")
@@ -285,7 +285,7 @@ def create_thumbnail(image_path: str) -> Image:
 The Context object gives your tools and resources access to MCP capabilities:
 
 ```python
-from mcp.server.fastmcp import FastMCP, Context
+from mcpengine.server.fastmcp import FastMCP, Context
 
 mcp = FastMCP("My App")
 
@@ -336,7 +336,7 @@ mcp install server.py -f .env
 For advanced scenarios like custom deployments:
 
 ```python
-from mcp.server.fastmcp import FastMCP
+from mcpengine.server.fastmcp import FastMCP
 
 mcp = FastMCP("My App")
 
@@ -358,7 +358,7 @@ You can mount the SSE server to an existing ASGI server using the `sse_app` meth
 ```python
 from starlette.applications import Starlette
 from starlette.routing import Mount, Host
-from mcp.server.fastmcp import FastMCP
+from mcpengine.server.fastmcp import FastMCP
 
 
 mcp = FastMCP("My App")
@@ -383,7 +383,7 @@ For more information on mounting applications in Starlette, see the [Starlette d
 A simple server demonstrating resources, tools, and prompts:
 
 ```python
-from mcp.server.fastmcp import FastMCP
+from mcpengine.server.fastmcp import FastMCP
 
 mcp = FastMCP("Echo")
 
@@ -413,7 +413,7 @@ A more complex example showing database integration:
 ```python
 import sqlite3
 
-from mcp.server.fastmcp import FastMCP
+from mcpengine.server.fastmcp import FastMCP
 
 mcp = FastMCP("SQLite Explorer")
 

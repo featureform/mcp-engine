@@ -2,7 +2,7 @@
 """
 Smack Messaging Server
 
-A FastMCP-based messaging service that provides 
+A FastMCP-based messaging service that provides
 message listing and posting capabilities.
 """
 

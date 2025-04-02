@@ -7,11 +7,11 @@ resolution-mode = "lowest-direct"
 
 [manifest]
 members = [
-    "mcp",
     "mcp-simple-prompt",
     "mcp-simple-resource",
     "mcp-simple-tool",
     "mcp-smack",
+    "mcpengine",
 ]
 
 [[package]]
@@ -488,6 +488,151 @@ wheels = [
 
 [[package]]
 name = "mcp"
+version = "1.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "httpx" },
+    { name = "httpx-sse" },
+    { name = "pydantic" },
+    { name = "sse-starlette" },
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/be/d5/15b9ff17c9e03bb6d936a0e1202aca69e3fa93508e749e620ae4f4fbd884/mcp-1.1.1.tar.gz", hash = "sha256:44d9c12461b640c4431618a3ebf1be4178d35511e9169e25c9b1afeb59313b99", size = 57790 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8c/30/dcffd09aa623b5a40e8ccb4227e935e4636cc4bec8d54ef9609768c24a53/mcp-1.1.1-py3-none-any.whl", hash = "sha256:29f693a54ca1d3730e625dcc06732bc83b52d64b993d253881de576a1d66feed", size = 36574 },
+]
+
+[[package]]
+name = "mcp-simple-prompt"
+version = "0.1.0"
+source = { editable = "examples/servers/simple-prompt" }
+dependencies = [
+    { name = "anyio" },
+    { name = "click" },
+    { name = "httpx" },
+    { name = "mcp" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anyio", specifier = ">=4.5" },
+    { name = "click", specifier = ">=8.1.0" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "mcp" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.378" },
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "ruff", specifier = ">=0.6.9" },
+]
+
+[[package]]
+name = "mcp-simple-resource"
+version = "0.1.0"
+source = { editable = "examples/servers/simple-resource" }
+dependencies = [
+    { name = "anyio" },
+    { name = "click" },
+    { name = "httpx" },
+    { name = "mcp" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anyio", specifier = ">=4.5" },
+    { name = "click", specifier = ">=8.1.0" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "mcp" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.378" },
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "ruff", specifier = ">=0.6.9" },
+]
+
+[[package]]
+name = "mcp-simple-tool"
+version = "0.1.0"
+source = { editable = "examples/servers/simple-tool" }
+dependencies = [
+    { name = "anyio" },
+    { name = "click" },
+    { name = "httpx" },
+    { name = "mcp" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anyio", specifier = ">=4.5" },
+    { name = "click", specifier = ">=8.1.0" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "mcp" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.378" },
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "ruff", specifier = ">=0.6.9" },
+]
+
+[[package]]
+name = "mcp-smack"
+version = "0.1.0"
+source = { editable = "examples/servers/smack" }
+dependencies = [
+    { name = "mcp" },
+    { name = "psycopg2-binary" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mcp" },
+    { name = "psycopg2-binary", specifier = "==2.9.9" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.378" },
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "ruff", specifier = ">=0.6.9" },
+]
+
+[[package]]
+name = "mcpengine"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
@@ -561,134 +706,6 @@ docs = [
     { name = "mkdocs-glightbox", specifier = ">=0.4.0" },
     { name = "mkdocs-material", extras = ["imaging"], specifier = ">=9.5.45" },
     { name = "mkdocstrings-python", specifier = ">=1.12.2" },
-]
-
-[[package]]
-name = "mcp-simple-prompt"
-version = "0.1.0"
-source = { editable = "examples/servers/simple-prompt" }
-dependencies = [
-    { name = "anyio" },
-    { name = "click" },
-    { name = "httpx" },
-    { name = "mcp" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "anyio", specifier = ">=4.5" },
-    { name = "click", specifier = ">=8.1.0" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "mcp", editable = "." },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.378" },
-    { name = "pytest", specifier = ">=8.3.3" },
-    { name = "ruff", specifier = ">=0.6.9" },
-]
-
-[[package]]
-name = "mcp-simple-resource"
-version = "0.1.0"
-source = { editable = "examples/servers/simple-resource" }
-dependencies = [
-    { name = "anyio" },
-    { name = "click" },
-    { name = "httpx" },
-    { name = "mcp" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "anyio", specifier = ">=4.5" },
-    { name = "click", specifier = ">=8.1.0" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "mcp", editable = "." },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.378" },
-    { name = "pytest", specifier = ">=8.3.3" },
-    { name = "ruff", specifier = ">=0.6.9" },
-]
-
-[[package]]
-name = "mcp-simple-tool"
-version = "0.1.0"
-source = { editable = "examples/servers/simple-tool" }
-dependencies = [
-    { name = "anyio" },
-    { name = "click" },
-    { name = "httpx" },
-    { name = "mcp" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "anyio", specifier = ">=4.5" },
-    { name = "click", specifier = ">=8.1.0" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "mcp", editable = "." },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.378" },
-    { name = "pytest", specifier = ">=8.3.3" },
-    { name = "ruff", specifier = ">=0.6.9" },
-]
-
-[[package]]
-name = "mcp-smack"
-version = "0.1.0"
-source = { editable = "examples/servers/smack" }
-dependencies = [
-    { name = "mcp" },
-    { name = "psycopg2-binary" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "mcp", editable = "." },
-    { name = "psycopg2-binary", specifier = "==2.9.9" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.378" },
-    { name = "pytest", specifier = ">=8.3.3" },
-    { name = "ruff", specifier = ">=0.6.9" },
 ]
 
 [[package]]
@@ -1456,14 +1473,16 @@ wheels = [
 
 [[package]]
 name = "sse-starlette"
-version = "1.6.1"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "anyio" },
     { name = "starlette" },
+    { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/40/88/0af7f586894cfe61bd212f33e571785c4570085711b24fb7445425a5eeb0/sse-starlette-1.6.1.tar.gz", hash = "sha256:6208af2bd7d0887c92f1379da14bd1f4db56bd1274cc5d36670c683d2aa1de6a", size = 14555 }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/54/9651ca960c0fbb997fb2a69dc01b29b182c643eb42a59b82623f7716054a/sse_starlette-2.0.0.tar.gz", hash = "sha256:0c43cc43aca4884c88c8416b65777c4de874cc4773e6458d3579c0a353dc2fb7", size = 18235 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5e/f7/499e5d0c181a52a205d5b0982fd71cf162d1e070c97dca90c60520bbf8bf/sse_starlette-1.6.1-py3-none-any.whl", hash = "sha256:d8f18f1c633e355afe61cc5e9c92eea85badcb8b2d56ec8cfb0a006994aa55da", size = 9553 },
+    { url = "https://files.pythonhosted.org/packages/50/04/b1569f95ce91fbfe35e5e6b3b11e8373ffe4fa81e998818c8c995a873896/sse_starlette-2.0.0-py3-none-any.whl", hash = "sha256:c4dd134302cb9708d47cae23c365fe0a089aa2a875d2f887ac80f235a9ee5744", size = 9032 },
 ]
 
 [[package]]

@@ -1,7 +1,7 @@
 import pytest
 
-from mcp import types
-from mcp.server.fastmcp import FastMCP
+from mcpengine import types
+from mcpengine.server.fastmcp import FastMCP
 
 
 @pytest.mark.anyio

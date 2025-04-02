@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mcp.cli.claude import update_claude_config
+from mcpengine.cli.claude import update_claude_config
 
 
 @pytest.fixture
@@ -19,7 +19,8 @@ def temp_config_dir(tmp_path: Path):
 @pytest.fixture
 def mock_config_path(temp_config_dir: Path):
     """Mock get_claude_config_path to return our temporary directory."""
-    with patch("mcp.cli.claude.get_claude_config_path", return_value=temp_config_dir):
+    mock_path = "mcpengine.cli.claude.get_claude_config_path"
+    with patch(mock_path, return_value=temp_config_dir):
         yield temp_config_dir
 
 

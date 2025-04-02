@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from mcp.server.fastmcp import FastMCP
+from mcpengine.server.fastmcp import FastMCP
 
 
 @pytest.fixture()

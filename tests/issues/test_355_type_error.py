@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-from mcp.server.fastmcp import Context, FastMCP
+from mcpengine.server.fastmcp import Context, FastMCP
 
 
 class Database:  # Replace with your actual DB type

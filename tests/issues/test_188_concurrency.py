@@ -2,8 +2,8 @@ import anyio
 import pytest
 from pydantic import AnyUrl
 
-from mcp.server.fastmcp import FastMCP
-from mcp.shared.memory import (
+from mcpengine.server.fastmcp import FastMCP
+from mcpengine.shared.memory import (
     create_connected_server_and_client_session as create_session,
 )
 

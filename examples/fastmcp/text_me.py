@@ -24,7 +24,7 @@ import httpx
 from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from mcp.server.fastmcp import FastMCP
+from mcpengine.server.fastmcp import FastMCP
 
 
 class SurgeSettings(BaseSettings):

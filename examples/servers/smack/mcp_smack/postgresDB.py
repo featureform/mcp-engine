@@ -10,7 +10,6 @@ import logging
 import os
 import time
 from contextlib import suppress
-from typing import Optional
 
 from psycopg2 import pool
 
@@ -238,7 +237,7 @@ class MessageDB:
         finally:
             self._return_connection(connection)
 
-    def get_message_by_id(self, message_id: int) -> Optional[tuple[int, str, str, str]]:
+    def get_message_by_id(self, message_id: int) -> tuple[int, str, str, str] | None:
         """
         Retrieve a specific message by its ID.
 

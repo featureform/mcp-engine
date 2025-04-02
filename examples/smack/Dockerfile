@@ -7,7 +7,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
 COPY . .
@@ -23,4 +23,4 @@ ENV DB_HOST=postgres \
     DB_PORT=5432
 
 # Command to run the web server
-CMD ["python", "server.py"]
+CMD ["python", "mcp_smack/server.py"]

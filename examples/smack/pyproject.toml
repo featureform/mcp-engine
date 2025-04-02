@@ -1,0 +1,37 @@
+[tool.ruff]
+# Enable autofix for all rules
+fix = true
+# Set line length to 88 (same as Black)
+line-length = 88
+# Select rules to enable
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+# Ignore specific rules
+ignore = []
+# Exclude files and directories
+exclude = [
+    ".git",
+    ".ruff_cache",
+    "__pycache__",
+    "venv",
+    "env",
+    ".env",
+]
+
+# Sort imports
+[tool.ruff.isort]
+known-first-party = ["smack"]
+
+# Format code
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

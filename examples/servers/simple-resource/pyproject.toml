@@ -9,7 +9,7 @@ maintainers = [
     { name = "David Soria Parra", email = "davidsp@anthropic.com" },
     { name = "Justin Spahr-Summers", email = "justin@anthropic.com" },
 ]
-keywords = ["mcp", "llm", "automation", "web", "fetch"]
+keywords = ["mcp", "mcpengine", "llm", "automation", "web", "fetch"]
 license = { text = "MIT" }
 classifiers = [
     "Development Status :: 4 - Beta",

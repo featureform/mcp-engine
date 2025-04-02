@@ -23,8 +23,8 @@ Using the MCP client, you can use the tool like this using the STDIO transport:
 
 ```python
 import asyncio
-from mcp.client.session import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcpengine.client.session import ClientSession
+from mcpengine.client.stdio import StdioServerParameters, stdio_client
 
 
 async def main():

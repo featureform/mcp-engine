@@ -7,7 +7,7 @@ requires-python = ">=3.10"
 authors = [{ name = "Anthropic, PBC." }, { name = "Featureform, Inc." }]
 maintainers = [
 ]
-keywords = ["git", "mcp", "llm", "automation"]
+keywords = ["git", "mcp", "mcpengine", "llm", "automation"]
 license = { text = "MIT" }
 classifiers = [
     "Development Status :: 4 - Beta",

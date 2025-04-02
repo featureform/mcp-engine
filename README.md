@@ -76,20 +76,20 @@ The Model Context Protocol allows applications to provide context for LLMs in a 
 We recommend using [uv](https://docs.astral.sh/uv/) to manage your Python projects. In a uv managed python project, add mcp to dependencies by:
 
 ```bash
-uv add "mcp[cli]"
+uv add "mcpengine[cli]"
 ```
 
 Alternatively, for projects using pip for dependencies:
 ```bash
-pip install "mcp[cli]"
+pip install "mcpengine[cli]"
 ```
 
 ### Running the standalone MCP development tools
 
-To run the mcp command with uv:
+To run the mcpengine command with uv:
 
 ```bash
-uv run mcp
+uv run mcpengine
 ```
 
 ## Quickstart
@@ -120,12 +120,12 @@ def get_greeting(name: str) -> str:
 
 You can install this server in [Claude Desktop](https://claude.ai/download) and interact with it right away by running:
 ```bash
-mcp install server.py
+mcpengine install server.py
 ```
 
 Alternatively, you can test it with the MCP Inspector:
 ```bash
-mcp dev server.py
+mcpengine dev server.py
 ```
 
 ## What is MCP?
@@ -151,7 +151,7 @@ from dataclasses import dataclass
 
 from fake_database import Database  # Replace with your actual DB type
 
-from mcp.server.mcpengine import Context, MCPEngine
+from mcpengine import Context, MCPEngine
 
 # Create a named server
 mcp = MCPEngine("My App")
@@ -242,7 +242,7 @@ Prompts are reusable templates that help LLMs interact with your server effectiv
 
 ```python
 from mcpengine import MCPEngine
-from mcp.server.mcpengine.prompts import base
+from mcpengine.server.mcpengine.prompts import base
 
 mcp = MCPEngine("My App")
 
@@ -449,7 +449,7 @@ from collections.abc import AsyncIterator
 
 from fake_database import Database  # Replace with your actual DB type
 
-from mcp.server import Server
+from mcpengine.server import Server
 
 
 @asynccontextmanager
@@ -482,10 +482,10 @@ The lifespan API provides:
 - Type-safe context passing between lifespan and request handlers
 
 ```python
-import mcp.server.stdio
-import mcp.types as types
-from mcp.server.lowlevel import NotificationOptions, Server
-from mcp.server.models import InitializationOptions
+import mcpengine.server.stdio
+import mcpengine.types as types
+from mcpengine.server.lowlevel import NotificationOptions, Server
+from mcpengine.server.models import InitializationOptions
 
 # Create a server instance
 server = Server("example-server")
@@ -525,7 +525,7 @@ async def handle_get_prompt(
 
 
 async def run():
-    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+    async with mcpengine.server.stdio.stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,
             write_stream,
@@ -551,8 +551,8 @@ if __name__ == "__main__":
 The SDK provides a high-level client interface for connecting to MCP servers:
 
 ```python
-from mcp import ClientSession, StdioServerParameters, types
-from mcp.client.stdio import stdio_client
+from mcpengine import ClientSession, StdioServerParameters, types
+from mcpengine.client.stdio import stdio_client
 
 # Create server parameters for stdio connection
 server_params = StdioServerParameters(

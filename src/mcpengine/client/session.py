@@ -118,7 +118,8 @@ class ClientSession(
             # they're supported?
             listChanged=True,
         )
-
+        name = "mcpengine"
+        version = "0.1.0"
         result = await self.send_request(
             types.ClientRequest(
                 types.InitializeRequest(
@@ -130,7 +131,7 @@ class ClientSession(
                             experimental=None,
                             roots=roots,
                         ),
-                        clientInfo=types.Implementation(name="mcp", version="0.1.0"),
+                        clientInfo=types.Implementation(name=name, version=version),
                     ),
                 )
             ),

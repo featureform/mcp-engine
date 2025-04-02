@@ -124,7 +124,7 @@ async def test_lowlevel_server_lifespan():
 
 
 @pytest.mark.anyio
-async def test_fastmcp_server_lifespan():
+async def test_mcpengine_server_lifespan():
     """Test that lifespan works in MCPEngine server."""
 
     @asynccontextmanager

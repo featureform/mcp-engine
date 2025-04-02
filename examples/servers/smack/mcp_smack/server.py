@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-from mcp.server.mcpengine import Context, MCPEngine
+from mcpengine import Context, MCPEngine
 
 from .db import MessageDB
 

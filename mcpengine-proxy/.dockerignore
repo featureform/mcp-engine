@@ -1,0 +1,33 @@
+# Version control
+.git
+.gitignore
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Build artifacts and binaries
+**/bin/
+**/obj/
+**/out/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test files
+**/*_test.go
+**/test/
+
+# Local development and environment files
+.env
+.env.*
+*.log
+
+# Documentation
+README.md
+LICENSE
+docs/

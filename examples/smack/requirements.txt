@@ -1,8 +1,0 @@
-mcp==1.6.0
-psycopg2-binary==2.9.9
-pydantic==2.11.1
-pydantic-settings==2.8.1
-python-dotenv==1.1.0
-uvicorn==0.34.0
-httpx-sse==0.4.0
-sse-starlette==2.2.1

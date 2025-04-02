@@ -3,11 +3,14 @@ FROM python:3.10-slim
 # Set working directory in the container
 WORKDIR /app
 
-# Copy requirements file
-COPY requirements.txt .
+# Install uv and tomli for TOML parsing
+RUN pip install --no-cache-dir uv tomli==2.0.1
 
-# Install dependencies
-RUN uv pip install --no-cache-dir -r requirements.txt
+# Copy pyproject.toml
+COPY pyproject.toml .
+
+# Install dependencies using uv with --system flag
+RUN uv pip install --system --no-cache-dir .
 
 # Copy the application code
 COPY . .

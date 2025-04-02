@@ -1,6 +1,6 @@
 services:
   smack-server:
-    build: .
+    build: ./smack
     ports:
       - "8000:8000"
     restart: unless-stopped

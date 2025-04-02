@@ -46,7 +46,7 @@ from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
 import mcp.types as types
-from mcp.server.auth.backend import BearerTokenBackend
+from mcp.server.auth.backend import BearerTokenBackend, AuthenticationBackend
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class SseServerTransport:
     # TODO: Make this generic over backends.
     _auth_backend: BearerTokenBackend | None
 
-    def __init__(self, endpoint: str, auth_backend: BearerTokenBackend | None = None) -> None:
+    def __init__(self, endpoint: str, auth_backend: AuthenticationBackend | None = None) -> None:
         """
         Creates a new SSE server transport, which will direct the client to POST
         messages to the relative or absolute URL given.

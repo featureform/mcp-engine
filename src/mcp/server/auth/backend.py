@@ -2,7 +2,7 @@
 from __future__ import annotations as _annotations
 
 import json
-from typing import Optional, Tuple, Any
+from typing import Optional, Tuple, Any, Protocol
 from urllib.parse import urljoin
 
 import httpx
@@ -22,6 +22,17 @@ logger = get_logger(__name__)
 
 OPENID_WELL_KNOWN_PATH: str = ".well-known/openid-configuration"
 OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
+
+
+# TODO: Not Any
+def get_auth_backend(settings: Any, scopes: set[str]) -> AuthenticationBackend:
+    if not settings.authentication_enabled:
+        return NoAuthBackend()
+
+    return BearerTokenBackend(
+        settings.issuer_url,
+        scopes,
+    )
 
 
 def on_error(scopes: list[str]) -> Any:
@@ -91,18 +102,44 @@ def validate_token(jwks: list, token: str) -> Any:
         raise Exception(f"Error validating token: {str(e)}")
 
 
+class AuthenticationBackend(Protocol):
+    async def authenticate(self, method: str, headers: Headers):
+        ...
+
+
+class NoAuthBackend(AuthenticationBackend):
+    def __init__(self):
+        pass
+
+    async def authenticate(self, _method: str, _headers: Headers):
+        pass
+
+
 class BearerTokenBackend:
-    METHODS_SKIP: set[str] = {"initialize", "notifications/initialized"}
+    METHODS_SKIP: set[str] = {
+        "initialize",
+        "notifications/initialized",
+        "tools/list",
+        "resources/list",
+        "prompts/list",
+    }
 
     issuer_url: HttpUrl
-    scopes: set[str]
+    application_scopes: set[str]
 
     def __init__(self, issuer_url: HttpUrl, scopes: set[str]):
         self.issuer_url = issuer_url
-        self.scopes = scopes
+        self.application_scopes = scopes
+
+    def on_error(self, err: Exception) -> Response:
+        return Response(
+            status_code=401,
+            content=str(err),
+            headers={"WWW-Authenticate": f"Bearer scope=\"{' '.join(self.application_scopes)}\""},
+        )
 
     def as_middleware(self) -> Middleware:
-        return Middleware(AuthenticationMiddleware, backend=self, on_error=on_error(self.scopes))
+        return Middleware(AuthenticationMiddleware, backend=self, on_error=on_error(self.application_scopes))
 
     async def authenticate(
             self, method: str, headers: Headers

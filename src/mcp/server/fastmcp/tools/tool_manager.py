@@ -38,7 +38,7 @@ class ToolManager:
             scopes: list[str] | None = None,
     ) -> Tool:
         """Add a tool to the server."""
-        tool = Tool.from_function(fn, name=name, description=description)
+        tool = Tool.from_function(fn, name=name, description=description, scopes=scopes)
         existing = self._tools.get(tool.name)
         if existing:
             if self.warn_on_duplicate_tools:

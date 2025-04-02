@@ -15,11 +15,11 @@ from typing import Any, Generic, Literal
 from urllib.parse import urljoin
 
 import anyio
+import httpx
 import pydantic_core
 import uvicorn
-from pydantic import BaseModel, Field
-from pydantic.networks import AnyUrl, HttpUrl
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel
+from pydantic.networks import AnyUrl
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
@@ -37,6 +37,7 @@ from mcp.server.lowlevel.server import LifespanResultT
 from mcp.server.lowlevel.server import Server as MCPServer
 from mcp.server.lowlevel.server import lifespan as default_lifespan
 from mcp.server.session import ServerSession, ServerSessionT
+from mcp.server.settings import Settings
 from mcp.server.sse import SseServerTransport
 from mcp.server.stdio import stdio_server
 from mcp.shared.context import LifespanContextT, RequestContext
@@ -54,53 +55,6 @@ from mcp.types import ResourceTemplate as MCPResourceTemplate
 from mcp.types import Tool as MCPTool
 
 logger = get_logger(__name__)
-
-
-class Settings(BaseSettings, Generic[LifespanResultT]):
-    """FastMCP server settings.
-
-    All settings can be configured via environment variables with the prefix FASTMCP_.
-    For example, FASTMCP_DEBUG=true will set debug=True.
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="FASTMCP_",
-        env_file=".env",
-        extra="ignore",
-    )
-
-    # Server settings
-    debug: bool = False
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-
-    # HTTP settings
-    host: str = "0.0.0.0"
-    port: int = 8000
-    sse_path: str = "/sse"
-    message_path: str = "/messages/"
-
-    # resource settings
-    warn_on_duplicate_resources: bool = True
-
-    # tool settings
-    warn_on_duplicate_tools: bool = True
-
-    # prompt settings
-    warn_on_duplicate_prompts: bool = True
-
-    dependencies: list[str] = Field(
-        default_factory=list,
-        description="List of dependencies to install in the server environment",
-    )
-
-    lifespan: (
-            Callable[[FastMCP], AbstractAsyncContextManager[LifespanResultT]] | None
-    ) = Field(None, description="Lifespan context manager")
-
-    # auth settings
-    authentication_enabled: bool = Field(False,
-                                         description="Enable authentication and authorization for the application")
-    issuer_url: HttpUrl | None = Field(None, description="Url of the issuer, which will be used as the root url")
 
 
 def lifespan_wrapper(
@@ -252,7 +206,16 @@ class FastMCP:
             logger.error(f"Error reading resource {uri}: {e}")
             raise ResourceError(str(e))
 
-    def add_scopes(self, scopes: list[str] | None) -> None:
+    def add_application_scopes(self, scopes: list[str] | None) -> None:
+        """Add scopes to the list of all scopes required by the application.
+
+        When we redirect the user to login, we pass all the scopes required by the application.
+        This is to prevent the user having to login in multiple times for each unique set of scopes
+        on a handler.
+
+        Args:
+            scopes: List of scopes to add.
+        """
         if scopes is None:
             return
         self.scopes.update(scopes)
@@ -315,7 +278,7 @@ class FastMCP:
 
         def decorator(fn: AnyFunction) -> AnyFunction:
             self.add_tool(fn, name=name, description=description, scopes=scopes)
-            self.add_scopes(scopes)
+            self.add_application_scopes(scopes)
             return fn
 
         return decorator
@@ -418,7 +381,7 @@ class FastMCP:
                 )
                 self.add_resource(resource)
 
-            self.add_scopes(scopes)
+            self.add_application_scopes(scopes)
 
             return fn
 
@@ -479,7 +442,7 @@ class FastMCP:
         def decorator(func: AnyFunction) -> AnyFunction:
             prompt = Prompt.from_function(func, name=name, description=description, scopes=scopes)
             self.add_prompt(prompt)
-            self.add_scopes(scopes)
+            self.add_application_scopes(scopes)
             return func
 
         return decorator
@@ -524,7 +487,6 @@ class FastMCP:
                     self._mcp_server.create_initialization_options(),
                 )
 
-        import httpx
         async def handle_well_known(_: Request) -> Response:
             async with httpx.AsyncClient() as client:
                 issuer_url = str(self.settings.issuer_url).rstrip("/") + "/"
@@ -532,25 +494,14 @@ class FastMCP:
                 response = await client.get(well_known_url)
                 return JSONResponse(response.json())
 
+        middleware = []
+
         routes = [
+            Route(f"/{OAUTH_WELL_KNOWN_PATH}", endpoint=handle_well_known, methods=["GET", "OPTIONS"]),
+            Route(f"/{OPENID_WELL_KNOWN_PATH}", endpoint=handle_well_known, methods=["GET", "OPTIONS"]),
             Route(self.settings.sse_path, endpoint=handle_sse),
             Mount(self.settings.message_path, app=sse.handle_post_message),
         ]
-        middleware = []
-
-        if self.settings.authentication_enabled:
-            # We wrap all the default routes in the auth check.
-            backend = BearerTokenBackend(self.settings.issuer_url, self.scopes)
-
-            routes = [
-                Route(f"/{OAUTH_WELL_KNOWN_PATH}", endpoint=handle_well_known, methods=["GET", "OPTIONS"]),
-                Route(f"/{OPENID_WELL_KNOWN_PATH}", endpoint=handle_well_known, methods=["GET", "OPTIONS"]),
-                Mount(
-                    "/",
-                    routes=routes,
-                    middleware=[],
-                ),
-            ]
 
         return Starlette(
             debug=self.settings.debug,

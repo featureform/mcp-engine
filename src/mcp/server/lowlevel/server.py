@@ -81,7 +81,6 @@ import mcp.types as types
 from mcp.server.lowlevel.helper_types import ReadResourceContents
 from mcp.server.models import InitializationOptions
 from mcp.server.session import ServerSession
-from mcp.server.stdio import stdio_server as stdio_server
 from mcp.shared.context import RequestContext
 from mcp.shared.exceptions import McpError
 from mcp.shared.session import RequestResponder
@@ -98,10 +97,10 @@ request_ctx: contextvars.ContextVar[RequestContext[ServerSession, Any]] = (
 
 class NotificationOptions:
     def __init__(
-        self,
-        prompts_changed: bool = False,
-        resources_changed: bool = False,
-        tools_changed: bool = False,
+            self,
+            prompts_changed: bool = False,
+            resources_changed: bool = False,
+            tools_changed: bool = False,
     ):
         self.prompts_changed = prompts_changed
         self.resources_changed = resources_changed
@@ -123,13 +122,13 @@ async def lifespan(server: Server[LifespanResultT]) -> AsyncIterator[object]:
 
 class Server(Generic[LifespanResultT]):
     def __init__(
-        self,
-        name: str,
-        version: str | None = None,
-        instructions: str | None = None,
-        lifespan: Callable[
-            [Server[LifespanResultT]], AbstractAsyncContextManager[LifespanResultT]
-        ] = lifespan,
+            self,
+            name: str,
+            version: str | None = None,
+            instructions: str | None = None,
+            lifespan: Callable[
+                [Server[LifespanResultT]], AbstractAsyncContextManager[LifespanResultT]
+            ] = lifespan,
     ):
         self.name = name
         self.version = version
@@ -145,9 +144,9 @@ class Server(Generic[LifespanResultT]):
         logger.debug(f"Initializing server '{name}'")
 
     def create_initialization_options(
-        self,
-        notification_options: NotificationOptions | None = None,
-        experimental_capabilities: dict[str, dict[str, Any]] | None = None,
+            self,
+            notification_options: NotificationOptions | None = None,
+            experimental_capabilities: dict[str, dict[str, Any]] | None = None,
     ) -> InitializationOptions:
         """Create initialization options from this server instance."""
 
@@ -172,9 +171,9 @@ class Server(Generic[LifespanResultT]):
         )
 
     def get_capabilities(
-        self,
-        notification_options: NotificationOptions,
-        experimental_capabilities: dict[str, dict[str, Any]],
+            self,
+            notification_options: NotificationOptions,
+            experimental_capabilities: dict[str, dict[str, Any]],
     ) -> types.ServerCapabilities:
         """Convert existing handlers to a ServerCapabilities object."""
         prompts_capability = None
@@ -232,9 +231,9 @@ class Server(Generic[LifespanResultT]):
 
     def get_prompt(self):
         def decorator(
-            func: Callable[
-                [str, dict[str, str] | None], Awaitable[types.GetPromptResult]
-            ],
+                func: Callable[
+                    [str, dict[str, str] | None], Awaitable[types.GetPromptResult]
+                ],
         ):
             logger.debug("Registering handler for GetPromptRequest")
 
@@ -279,9 +278,9 @@ class Server(Generic[LifespanResultT]):
 
     def read_resource(self):
         def decorator(
-            func: Callable[
-                [AnyUrl], Awaitable[str | bytes | Iterable[ReadResourceContents]]
-            ],
+                func: Callable[
+                    [AnyUrl], Awaitable[str | bytes | Iterable[ReadResourceContents]]
+                ],
         ):
             logger.debug("Registering handler for ReadResourceRequest")
 
@@ -394,14 +393,14 @@ class Server(Generic[LifespanResultT]):
 
     def call_tool(self):
         def decorator(
-            func: Callable[
-                ...,
-                Awaitable[
-                    Iterable[
-                        types.TextContent | types.ImageContent | types.EmbeddedResource
-                    ]
+                func: Callable[
+                    ...,
+                    Awaitable[
+                        Iterable[
+                            types.TextContent | types.ImageContent | types.EmbeddedResource
+                            ]
+                    ],
                 ],
-            ],
         ):
             logger.debug("Registering handler for CallToolRequest")
 
@@ -426,7 +425,7 @@ class Server(Generic[LifespanResultT]):
 
     def progress_notification(self):
         def decorator(
-            func: Callable[[str | int, float, float | None], Awaitable[None]],
+                func: Callable[[str | int, float, float | None], Awaitable[None]],
         ):
             logger.debug("Registering handler for ProgressNotification")
 
@@ -444,13 +443,13 @@ class Server(Generic[LifespanResultT]):
         """Provides completions for prompts and resource templates"""
 
         def decorator(
-            func: Callable[
-                [
-                    types.PromptReference | types.ResourceReference,
-                    types.CompletionArgument,
+                func: Callable[
+                    [
+                        types.PromptReference | types.ResourceReference,
+                        types.CompletionArgument,
+                    ],
+                    Awaitable[types.Completion | None],
                 ],
-                Awaitable[types.Completion | None],
-            ],
         ):
             logger.debug("Registering handler for CompleteRequest")
 
@@ -470,15 +469,15 @@ class Server(Generic[LifespanResultT]):
         return decorator
 
     async def run(
-        self,
-        read_stream: MemoryObjectReceiveStream[types.JSONRPCMessage | Exception],
-        write_stream: MemoryObjectSendStream[types.JSONRPCMessage],
-        initialization_options: InitializationOptions,
-        # When False, exceptions are returned as messages to the client.
-        # When True, exceptions are raised, which will cause the server to shut down
-        # but also make tracing exceptions much easier during testing and when using
-        # in-process servers.
-        raise_exceptions: bool = False,
+            self,
+            read_stream: MemoryObjectReceiveStream[types.JSONRPCMessage | Exception],
+            write_stream: MemoryObjectSendStream[types.JSONRPCMessage],
+            initialization_options: InitializationOptions,
+            # When False, exceptions are returned as messages to the client.
+            # When True, exceptions are raised, which will cause the server to shut down
+            # but also make tracing exceptions much easier during testing and when using
+            # in-process servers.
+            raise_exceptions: bool = False,
     ):
         async with AsyncExitStack() as stack:
             lifespan_context = await stack.enter_async_context(self.lifespan(self))
@@ -499,19 +498,19 @@ class Server(Generic[LifespanResultT]):
                     )
 
     async def _handle_message(
-        self,
-        message: RequestResponder[types.ClientRequest, types.ServerResult]
-        | types.ClientNotification
-        | Exception,
-        session: ServerSession,
-        lifespan_context: LifespanResultT,
-        raise_exceptions: bool = False,
+            self,
+            message: RequestResponder[types.ClientRequest, types.ServerResult]
+                     | types.ClientNotification
+                     | Exception,
+            session: ServerSession,
+            lifespan_context: LifespanResultT,
+            raise_exceptions: bool = False,
     ):
         with warnings.catch_warnings(record=True) as w:
             # TODO(Marcelo): We should be checking if message is Exception here.
             match message:  # type: ignore[reportMatchNotExhaustive]
                 case (
-                    RequestResponder(request=types.ClientRequest(root=req)) as responder
+                RequestResponder(request=types.ClientRequest(root=req)) as responder
                 ):
                     with responder:
                         await self._handle_request(
@@ -524,12 +523,12 @@ class Server(Generic[LifespanResultT]):
                 logger.info(f"Warning: {warning.category.__name__}: {warning.message}")
 
     async def _handle_request(
-        self,
-        message: RequestResponder[types.ClientRequest, types.ServerResult],
-        req: Any,
-        session: ServerSession,
-        lifespan_context: LifespanResultT,
-        raise_exceptions: bool,
+            self,
+            message: RequestResponder[types.ClientRequest, types.ServerResult],
+            req: Any,
+            session: ServerSession,
+            lifespan_context: LifespanResultT,
+            raise_exceptions: bool,
     ):
         logger.info(f"Processing request of type {type(req).__name__}")
         if type(req) in self.request_handlers:
@@ -549,7 +548,7 @@ class Server(Generic[LifespanResultT]):
                     )
                 )
                 response = await handler(req)
-            except McpError as err:
+            except (AuthorizationException, McpError) as err:
                 response = err.error
             except Exception as err:
                 if raise_exceptions:

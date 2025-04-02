@@ -10,7 +10,9 @@ SMACK serves as a practical demonstration of the MCP Engine's capabilities by pr
 
 For a visual representation of the architecture and how SMACK integrates with the MCP Engine, please refer to the diagram below:
 
-<img src="https://cdn.prod.website-files.com/60cce6512b4ab924a0427124/67ec3d30ae1829e736099100_AD_4nXfpxfRMRgTM8glCYWi-YjhvxBvM3qAS73e58YRbCT8xtVnDwipEhT6NhLxssr5xH7jw-d6HoJByggT7QtOIsXYuG8MYbVtiV2aeNPiXDlIGjIF6zIKhaCrO4AdmGAUmuHLXgBzX.png" alt="MCP Authorization Flow" width="500">
+<a href="https://spec.modelcontextprotocol.io/specification/2025-03-26/basic/authorization/" target="_blank">
+  <img src="https://cdn.prod.website-files.com/60cce6512b4ab924a0427124/67ec3d30ae1829e736099100_AD_4nXfpxfRMRgTM8glCYWi-YjhvxBvM3qAS73e58YRbCT8xtVnDwipEhT6NhLxssr5xH7jw-d6HoJByggT7QtOIsXYuG8MYbVtiV2aeNPiXDlIGjIF6zIKhaCrO4AdmGAUmuHLXgBzX.png" alt="MCP Authorization Flow" width="500">
+</a>
 
 This diagram illustrates the flow of data and the role of authentication in ensuring secure interactions within the SMACK service.
 

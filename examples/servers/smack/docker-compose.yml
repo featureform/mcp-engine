@@ -1,13 +1,16 @@
 services:
   smack-server:
-    build: ./smack
+    build: .
     ports:
       - "8000:8000"
     restart: unless-stopped
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/smack
+      - DB_MAX_RETRIES=10
+      - DB_RETRY_DELAY=5
       
   postgres:
     image: postgres:15
@@ -20,6 +23,11 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=smack
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

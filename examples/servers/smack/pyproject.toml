@@ -16,17 +16,17 @@ classifiers = [
 dependencies = ["psycopg2-binary==2.9.9", "mcp"]
 
 [project.scripts]
-mcp-smack = "mcp-smack.server:main"
+mcp-smack = "mcp_smack.server:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["mcp-smack"]
+packages = ["mcp_smack"]
 
 [tool.pyright]
-include = ["mcp-smack"]
+include = ["mcp_smack"]
 venvPath = "."
 venv = ".venv"
 

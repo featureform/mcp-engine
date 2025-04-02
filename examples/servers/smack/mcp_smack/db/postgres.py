@@ -37,8 +37,8 @@ class MessageDB:
         """Initialize the database connection pool with retry logic."""
         # Get connection parameters from environment with secure defaults
         database_url = os.environ.get("DATABASE_URL")
-        max_retries = int(os.environ.get("DB_MAX_RETRIES", "5"))
-        retry_delay = int(os.environ.get("DB_RETRY_DELAY", "2"))
+        max_retries = int(os.environ.get("DB_MAX_RETRIES", "10"))
+        retry_delay = int(os.environ.get("DB_RETRY_DELAY", "5"))
 
         # Set pool size from environment or use defaults
         self._pool_min_conn = int(os.environ.get("DB_MIN_CONNECTIONS", "1"))
@@ -97,6 +97,11 @@ class MessageDB:
         logger.error(
             f"Failed to establish database connection after {max_retries} attempts: "
             f"{last_error}"
+        )
+        logger.error(
+            "Please ensure the database is running and accessible. "
+            "Check your environment variables: "
+            "DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD"
         )
         raise ConnectionError(f"Could not connect to database: {last_error}")
 

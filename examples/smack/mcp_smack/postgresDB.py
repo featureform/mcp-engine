@@ -9,7 +9,8 @@ import atexit
 import logging
 import os
 import time
-from typing import List, Optional, Tuple
+from contextlib import suppress
+from typing import Optional
 
 from psycopg2 import pool
 
@@ -75,7 +76,8 @@ class MessageDB:
                         port=self.db_port,
                     )
                     logger.info(
-                        f"PostgreSQL connection pool established to {self.db_host}:{self.db_port}/{self.db_name}"
+                        f"PostgreSQL connection pool established to "
+                        f"{self.db_host}:{self.db_port}/{self.db_name}"
                     )
 
                 # Initialize database schema
@@ -94,7 +96,8 @@ class MessageDB:
 
         # If we get here, all retries failed
         logger.error(
-            f"Failed to establish database connection after {max_retries} attempts: {last_error}"
+            f"Failed to establish database connection after {max_retries} attempts: "
+            f"{last_error}"
         )
         raise ConnectionError(f"Could not connect to database: {last_error}")
 
@@ -152,10 +155,8 @@ class MessageDB:
             except Exception as e:
                 logger.warning(f"Error returning connection to pool: {e}")
                 # Try to close it directly if returning fails
-                try:
+                with suppress(Exception):
                     connection.close()
-                except:
-                    pass
 
     def close_connection(self):
         """Close the database connection pool."""
@@ -208,7 +209,7 @@ class MessageDB:
         finally:
             self._return_connection(connection)
 
-    def get_all_messages(self, limit: int = 100) -> List[Tuple[int, str, str, str]]:
+    def get_all_messages(self, limit: int = 100) -> list[tuple[int, str, str, str]]:
         """
         Retrieve messages from the database with pagination.
 
@@ -223,7 +224,8 @@ class MessageDB:
             connection = self._get_connection()
             cursor = connection.cursor()
             cursor.execute(
-                "SELECT id, sender, content, timestamp FROM messages ORDER BY timestamp DESC LIMIT %s",
+                "SELECT id, sender, content, timestamp "
+                "FROM messages ORDER BY timestamp DESC LIMIT %s",
                 (limit,),
             )
             messages = cursor.fetchall()
@@ -236,7 +238,7 @@ class MessageDB:
         finally:
             self._return_connection(connection)
 
-    def get_message_by_id(self, message_id: int) -> Optional[Tuple[int, str, str, str]]:
+    def get_message_by_id(self, message_id: int) -> Optional[tuple[int, str, str, str]]:
         """
         Retrieve a specific message by its ID.
 

@@ -1,649 +1,275 @@
-# MCP Python SDK
+# MCPEngine
 
-<div align="center">
+**Production-Grade Implementation of the Model Context Protocol (MCP)**
 
-<strong>Python implementation of the Model Context Protocol (MCP)</strong>
-
-[![PyPI][pypi-badge]][pypi-url]
-[![MIT licensed][mit-badge]][mit-url]
-[![Python Version][python-badge]][python-url]
-[![Documentation][docs-badge]][docs-url]
-[![Specification][spec-badge]][spec-url]
-[![GitHub Discussions][discussions-badge]][discussions-url]
-
-</div>
-
-<!-- omit in toc -->
-## Table of Contents
-
-- [MCP Python SDK](#mcp-python-sdk)
-  - [Overview](#overview)
-  - [Installation](#installation)
-    - [Adding MCP to your python project](#adding-mcp-to-your-python-project)
-    - [Running the standalone MCP development tools](#running-the-standalone-mcp-development-tools)
-  - [Quickstart](#quickstart)
-  - [What is MCP?](#what-is-mcp)
-  - [Core Concepts](#core-concepts)
-    - [Server](#server)
-    - [Resources](#resources)
-    - [Tools](#tools)
-    - [Prompts](#prompts)
-    - [Images](#images)
-    - [Context](#context)
-  - [Running Your Server](#running-your-server)
-    - [Development Mode](#development-mode)
-    - [Claude Desktop Integration](#claude-desktop-integration)
-    - [Direct Execution](#direct-execution)
-    - [Mounting to an Existing ASGI Server](#mounting-to-an-existing-asgi-server)
-  - [Examples](#examples)
-    - [Echo Server](#echo-server)
-    - [SQLite Explorer](#sqlite-explorer)
-  - [Advanced Usage](#advanced-usage)
-    - [Low-Level Server](#low-level-server)
-    - [Writing MCP Clients](#writing-mcp-clients)
-    - [MCP Primitives](#mcp-primitives)
-    - [Server Capabilities](#server-capabilities)
-  - [Documentation](#documentation)
-  - [Contributing](#contributing)
-  - [License](#license)
-
-[pypi-badge]: https://img.shields.io/pypi/v/mcp.svg
-[pypi-url]: https://pypi.org/project/mcp/
-[mit-badge]: https://img.shields.io/pypi/l/mcp.svg
-[mit-url]: https://github.com/modelcontextprotocol/python-sdk/blob/main/LICENSE
-[python-badge]: https://img.shields.io/pypi/pyversions/mcp.svg
-[python-url]: https://www.python.org/downloads/
-[docs-badge]: https://img.shields.io/badge/docs-modelcontextprotocol.io-blue.svg
-[docs-url]: https://modelcontextprotocol.io
-[spec-badge]: https://img.shields.io/badge/spec-spec.modelcontextprotocol.io-blue.svg
-[spec-url]: https://spec.modelcontextprotocol.io
-[discussions-badge]: https://img.shields.io/github/discussions/modelcontextprotocol/python-sdk
-[discussions-url]: https://github.com/modelcontextprotocol/python-sdk/discussions
+<img src="assets/logo.png" alt="MCPEngine Logo" width="400">
 
 ## Overview
 
-The Model Context Protocol allows applications to provide context for LLMs in a standardized way, separating the concerns of providing context from the actual LLM interaction. This Python SDK implements the full MCP specification, making it easy to:
+**MCPEngine** is a production-grade, HTTP-first implementation of the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). It provides a secure, scalable, and modern framework for exposing data, tools, and prompts to Large Language Models (LLMs) via MCP.
 
-- Build MCP clients that can connect to any MCP server
-- Create MCP servers that expose resources, prompts and tools
-- Use standard transports like stdio and SSE
-- Handle all MCP protocol messages and lifecycle events
+We believe MCP can be the "**REST for LLMs**," enabling any application (Slack, Gmail, GitHub, etc.) to expose a standardized endpoint that LLMs can access without custom-coded integrations. **MCPEngine** is our contribution to making MCP robust enough for modern, cloud-native use cases.
+
+## Key Features
+
+- **Built-in OAuth** with Okta, Keycloak, Google SSO, etc.  
+- **HTTP-first** design (SSE instead of just stdio)  
+- **Scope-based Authorization** for tools, resources, and prompts  
+- **Seamless bridging** for LLM hosts (like Claude Desktop) via a local proxy  
+- **Full backwards-compatibility** with FastMCP and the official MCP SDK
+
+## Architecture
+
+MCPEngine uses a proxy-based architecture to integrate with LLM hosts like Claude Desktop:
+
+```
+┌───────────────┐     stdio     ┌─────────────────┐     HTTP/SSE     ┌───────────────┐
+│  Claude Host  ├───────────────►  MCPProxy Local ├──────────────────► MCPEngine     │
+│               │               │                 │                   │ Server        │
+│               ◄───────────────┤ (runs locally) ◄──────────────────┬┤ (remote)      │
+└───────────────┘               └─────────────────┘      OAuth 2.1   │└───────────────┘
+                                                                     │
+                                                        ┌────────────┴───────────┐
+                                                        │ Identity Provider      │
+                                                        │ (Okta, Keycloak, etc.) │
+                                                        └────────────────────────┘
+```
+
+This architecture provides several advantages:
+1. **Seamless integration** - Claude sees a local stdio-based process
+2. **Security** - The proxy handles OAuth authentication flows
+3. **Scalability** - The MCPEngine server can run anywhere (cloud, on-prem)
+4. **Separation of concerns** - Authentication is handled independently from your business logic
 
 ## Installation
 
-### Adding MCP to your python project
-
-We recommend using [uv](https://docs.astral.sh/uv/) to manage your Python projects. In a uv managed python project, add mcp to dependencies by:
-
 ```bash
 uv add "mcpengine[cli]"
-```
-
-Alternatively, for projects using pip for dependencies:
-```bash
+# or
 pip install "mcpengine[cli]"
 ```
 
-### Running the standalone MCP development tools
-
-To run the mcpengine command with uv:
+Once installed, you can run the CLI tools:
 
 ```bash
-uv run mcpengine
+mcpengine --help
 ```
 
 ## Quickstart
 
-Let's create a simple MCP server that exposes a calculator tool and some data:
+### Create a Server
 
 ```python
 # server.py
 from mcpengine import MCPEngine
 
-# Create an MCP server
 mcp = MCPEngine("Demo")
 
-
-# Add an addition tool
 @mcp.tool()
 def add(a: int, b: int) -> int:
-    """Add two numbers"""
     return a + b
 
-
-# Add a dynamic greeting resource
 @mcp.resource("greeting://{name}")
 def get_greeting(name: str) -> str:
-    """Get a personalized greeting"""
     return f"Hello, {name}!"
-```
-
-You can install this server in [Claude Desktop](https://claude.ai/download) and interact with it right away by running:
-```bash
-mcpengine install server.py
-```
-
-Alternatively, you can test it with the MCP Inspector:
-```bash
-mcpengine dev server.py
-```
-
-## What is MCP?
-
-The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) lets you build servers that expose data and functionality to LLM applications in a secure, standardized way. Think of it like a web API, but specifically designed for LLM interactions. MCP servers can:
-
-- Expose data through **Resources** (think of these sort of like GET endpoints; they are used to load information into the LLM's context)
-- Provide functionality through **Tools** (sort of like POST endpoints; they are used to execute code or otherwise produce a side effect)
-- Define interaction patterns through **Prompts** (reusable templates for LLM interactions)
-- And more!
-
-## Core Concepts
-
-### Server
-
-The MCPEngine server is your core interface to the MCP protocol. It handles connection management, protocol compliance, and message routing:
-
-```python
-# Add lifespan support for startup/shutdown with strong typing
-from contextlib import asynccontextmanager
-from collections.abc import AsyncIterator
-from dataclasses import dataclass
-
-from fake_database import Database  # Replace with your actual DB type
-
-from mcpengine import Context, MCPEngine
-
-# Create a named server
-mcp = MCPEngine("My App")
-
-# Specify dependencies for deployment and development
-mcp = MCPEngine("My App", dependencies=["pandas", "numpy"])
-
-
-@dataclass
-class AppContext:
-    db: Database
-
-
-@asynccontextmanager
-async def app_lifespan(server: MCPEngine) -> AsyncIterator[AppContext]:
-    """Manage application lifecycle with type-safe context"""
-    # Initialize on startup
-    db = await Database.connect()
-    try:
-        yield AppContext(db=db)
-    finally:
-        # Cleanup on shutdown
-        await db.disconnect()
-
-
-# Pass lifespan to server
-mcp = MCPEngine("My App", lifespan=app_lifespan)
-
-
-# Access type-safe lifespan context in tools
-@mcp.tool()
-def query_db(ctx: Context) -> str:
-    """Tool that uses initialized resources"""
-    db = ctx.request_context.lifespan_context["db"]
-    return db.query()
-```
-
-### Resources
-
-Resources are how you expose data to LLMs. They're similar to GET endpoints in a REST API - they provide data but shouldn't perform significant computation or have side effects:
-
-```python
-from mcpengine import MCPEngine
-
-mcp = MCPEngine("My App")
-
-
-@mcp.resource("config://app")
-def get_config() -> str:
-    """Static configuration data"""
-    return "App configuration here"
-
-
-@mcp.resource("users://{user_id}/profile")
-def get_user_profile(user_id: str) -> str:
-    """Dynamic user data"""
-    return f"Profile data for user {user_id}"
-```
-
-### Tools
-
-Tools let LLMs take actions through your server. Unlike resources, tools are expected to perform computation and have side effects:
-
-```python
-import httpx
-from mcpengine import MCPEngine
-
-mcp = MCPEngine("My App")
-
-
-@mcp.tool()
-def calculate_bmi(weight_kg: float, height_m: float) -> float:
-    """Calculate BMI given weight in kg and height in meters"""
-    return weight_kg / (height_m**2)
-
-
-@mcp.tool()
-async def fetch_weather(city: str) -> str:
-    """Fetch current weather for a city"""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"https://api.weather.com/{city}")
-        return response.text
-```
-
-### Prompts
-
-Prompts are reusable templates that help LLMs interact with your server effectively:
-
-```python
-from mcpengine import MCPEngine
-from mcpengine.server.mcpengine.prompts import base
-
-mcp = MCPEngine("My App")
-
-
-@mcp.prompt()
-def review_code(code: str) -> str:
-    return f"Please review this code:\n\n{code}"
-
-
-@mcp.prompt()
-def debug_error(error: str) -> list[base.Message]:
-    return [
-        base.UserMessage("I'm seeing this error:"),
-        base.UserMessage(error),
-        base.AssistantMessage("I'll help debug that. What have you tried so far?"),
-    ]
-```
-
-### Images
-
-MCPEngine provides an `Image` class that automatically handles image data:
-
-```python
-from mcpengine.server.mcpengine import MCPEngine, Image
-from PIL import Image as PILImage
-
-mcp = MCPEngine("My App")
-
-
-@mcp.tool()
-def create_thumbnail(image_path: str) -> Image:
-    """Create a thumbnail from an image"""
-    img = PILImage.open(image_path)
-    img.thumbnail((100, 100))
-    return Image(data=img.tobytes(), format="png")
-```
-
-### Context
-
-The Context object gives your tools and resources access to MCP capabilities:
-
-```python
-from mcpengine.server.mcpengine import MCPEngine, Context
-
-mcp = MCPEngine("My App")
-
-
-@mcp.tool()
-async def long_task(files: list[str], ctx: Context) -> str:
-    """Process multiple files with progress tracking"""
-    for i, file in enumerate(files):
-        ctx.info(f"Processing {file}")
-        await ctx.report_progress(i, len(files))
-        data, mime_type = await ctx.read_resource(f"file://{file}")
-    return "Processing complete"
-```
-
-## Running Your Server
-
-### Development Mode
-
-The fastest way to test and debug your server is with the MCP Inspector:
-
-```bash
-mcp dev server.py
-
-# Add dependencies
-mcp dev server.py --with pandas --with numpy
-
-# Mount local code
-mcp dev server.py --with-editable .
 ```
 
 ### Claude Desktop Integration
 
-Once your server is ready, install it in Claude Desktop:
+If your server is at http://localhost:8000, you can start the proxy locally:
 
 ```bash
-mcp install server.py
-
-# Custom name
-mcp install server.py --name "My Analytics Server"
-
-# Environment variables
-mcp install server.py -v API_KEY=abc123 -v DB_URL=postgres://...
-mcp install server.py -f .env
+mcpengine proxy http://localhost:8000/sse
 ```
 
-### Direct Execution
+Claude Desktop sees a local stdio server, while the proxy handles any necessary OAuth or SSE traffic automatically.
 
-For advanced scenarios like custom deployments:
+## Core Concepts
+
+### Authentication & Authorization
+
+Enable OAuth and scopes:
 
 ```python
-from mcpengine import MCPEngine
+from mcpengine import MCPEngine, Context
 
-mcp = MCPEngine("My App")
-
-if __name__ == "__main__":
-    mcp.run()
-```
-
-Run it with:
-```bash
-python server.py
-# or
-mcp run server.py
-```
-
-### Mounting to an Existing ASGI Server
-
-You can mount the SSE server to an existing ASGI server using the `sse_app` method. This allows you to integrate the SSE server with other ASGI applications.
-
-```python
-from starlette.applications import Starlette
-from starlette.routing import Mount, Host
-from mcpengine import MCPEngine
-
-
-mcp = MCPEngine("My App")
-
-# Mount the SSE server to the existing ASGI server
-app = Starlette(
-    routes=[
-        Mount('/', app=mcp.sse_app()),
-    ]
+mcp = MCPEngine(
+    "SecureDemo",
+    authentication_enabled=True,
+    issuer_url="https://your-idp.example.com/realms/some-realm",
 )
 
-# or dynamically mount as host
-app.router.routes.append(Host('mcp.acme.corp', app=mcp.sse_app()))
+@mcp.auth(scopes=["calc:read"])
+@mcp.tool()
+def add(a: int, b: int, ctx: Context) -> int:
+    ctx.info(f"User {ctx.user_id} with roles {ctx.roles} called add.")
+    return a + b
 ```
 
-For more information on mounting applications in Starlette, see the [Starlette documentation](https://www.starlette.io/routing/#submounting-routes).
+Any attempt to call `add` requires the user to have `calc:read` scope. Without it, the server returns 401 Unauthorized, prompting a login flow if used via the proxy.
 
-## Examples
+### Resources
 
-### Echo Server
-
-A simple server demonstrating resources, tools, and prompts:
+`@mcp.resource("uri")`: Provide read-only context for LLMs, like a GET endpoint.
 
 ```python
-from mcpengine import MCPEngine
-
-mcp = MCPEngine("Echo")
-
-
-@mcp.resource("echo://{message}")
-def echo_resource(message: str) -> str:
-    """Echo a message as a resource"""
-    return f"Resource echo: {message}"
-
-
-@mcp.tool()
-def echo_tool(message: str) -> str:
-    """Echo a message as a tool"""
-    return f"Tool echo: {message}"
-
-
-@mcp.prompt()
-def echo_prompt(message: str) -> str:
-    """Create an echo prompt"""
-    return f"Please process this message: {message}"
+@mcp.resource("config://app")
+def get_config():
+    return "Configuration Data"
 ```
+
+### Tools
+
+`@mcp.tool()`: LLM-invokable functions. They can have side effects or perform computations.
+
+```python
+@mcp.tool()
+def send_email(to: str, body: str):
+    return "Email Sent!"
+```
+
+### Prompts
+
+`@mcp.prompt()`: Reusable conversation templates.
+
+```python
+@mcp.prompt()
+def debug_prompt(error_msg: str):
+    return f"Debug: {error_msg}"
+```
+
+### Images
+
+Return images as first-class data:
+
+```python
+from mcpengine import Image
+@mcp.tool()
+def thumbnail(path: str) -> Image:
+    ...
+```
+
+### Context
+
+Each request has a Context:
+
+- `ctx.user_id`: Authenticated user id
+- `ctx.user_name`: Authenticated user name
+- `ctx.roles`: User scopes/roles
+- `ctx.info(...)`: Logging
+- `ctx.read_resource(...)`: Access other resources
+
+## Example Implementations
 
 ### SQLite Explorer
 
-A more complex example showing database integration:
-
 ```python
 import sqlite3
+from mcpengine import MCPEngine, Context
 
-from mcpengine import MCPEngine
+mcp = MCPEngine(
+    "SQLiteExplorer",
+    authentication_enabled=True,
+    issuer_url="https://your-idp.example.com/realms/some-realm",
+)
 
-mcp = MCPEngine("SQLite Explorer")
-
-
-@mcp.resource("schema://main")
-def get_schema() -> str:
-    """Provide the database schema as a resource"""
-    conn = sqlite3.connect("database.db")
-    schema = conn.execute("SELECT sql FROM sqlite_master WHERE type='table'").fetchall()
-    return "\n".join(sql[0] for sql in schema if sql[0])
-
-
+@mcp.auth(scopes=["database:read"])
 @mcp.tool()
-def query_data(sql: str) -> str:
-    """Execute SQL queries safely"""
-    conn = sqlite3.connect("database.db")
+def query_db(sql: str, ctx: Context) -> str:
+    conn = sqlite3.connect("data.db")
     try:
-        result = conn.execute(sql).fetchall()
-        return "\n".join(str(row) for row in result)
+        rows = conn.execute(sql).fetchall()
+        ctx.info(f"User {ctx.user.id} executed query: {sql}")
+        return str(rows)
     except Exception as e:
         return f"Error: {str(e)}"
 ```
 
-## Advanced Usage
-
-### Low-Level Server
-
-For more control, you can use the low-level server implementation directly. This gives you full access to the protocol and allows you to customize every aspect of your server, including lifecycle management through the lifespan API:
+### Echo Server
 
 ```python
-from contextlib import asynccontextmanager
-from collections.abc import AsyncIterator
+@mcp.resource("echo://{msg}")
+def echo_resource(msg: str):
+    return f"Resource echo: {msg}"
 
-from fake_database import Database  # Replace with your actual DB type
-
-from mcpengine.server import Server
-
-
-@asynccontextmanager
-async def server_lifespan(server: Server) -> AsyncIterator[dict]:
-    """Manage server startup and shutdown lifecycle."""
-    # Initialize resources on startup
-    db = await Database.connect()
-    try:
-        yield {"db": db}
-    finally:
-        # Clean up on shutdown
-        await db.disconnect()
-
-
-# Pass lifespan to server
-server = Server("example-server", lifespan=server_lifespan)
-
-
-# Access lifespan context in handlers
-@server.call_tool()
-async def query_db(name: str, arguments: dict) -> list:
-    ctx = server.request_context
-    db = ctx.lifespan_context["db"]
-    return await db.query(arguments["query"])
+@mcp.tool()
+def echo_tool(msg: str):
+    return f"Tool echo: {msg}"
 ```
 
-The lifespan API provides:
-- A way to initialize resources when the server starts and clean them up when it stops
-- Access to initialized resources through the request context in handlers
-- Type-safe context passing between lifespan and request handlers
+## Smack - Message Storage Example
 
-```python
-import mcpengine.server.stdio
-import mcpengine.types as types
-from mcpengine.server.lowlevel import NotificationOptions, Server
-from mcpengine.server.models import InitializationOptions
+Smack is a simple messaging service example with PostgreSQL storage that demonstrates MCPEngine's capabilities with OAuth 2.1 authentication.
 
-# Create a server instance
-server = Server("example-server")
+### Quick Start
 
+1. Start the service using Docker Compose:
 
-@server.list_prompts()
-async def handle_list_prompts() -> list[types.Prompt]:
-    return [
-        types.Prompt(
-            name="example-prompt",
-            description="An example prompt template",
-            arguments=[
-                types.PromptArgument(
-                    name="arg1", description="Example argument", required=True
-                )
-            ],
-        )
-    ]
-
-
-@server.get_prompt()
-async def handle_get_prompt(
-    name: str, arguments: dict[str, str] | None
-) -> types.GetPromptResult:
-    if name != "example-prompt":
-        raise ValueError(f"Unknown prompt: {name}")
-
-    return types.GetPromptResult(
-        description="Example prompt",
-        messages=[
-            types.PromptMessage(
-                role="user",
-                content=types.TextContent(type="text", text="Example prompt text"),
-            )
-        ],
-    )
-
-
-async def run():
-    async with mcpengine.server.stdio.stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="example",
-                server_version="0.1.0",
-                capabilities=server.get_capabilities(
-                    notification_options=NotificationOptions(),
-                    experimental_capabilities={},
-                ),
-            ),
-        )
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(run())
+```bash
+git clone https://github.com/featureform/mcp-engine.git
+cd mcp-engine/examples/servers/smack
+docker-compose up --build
 ```
 
-### Writing MCP Clients
+2. Using Claude Desktop
 
-The SDK provides a high-level client interface for connecting to MCP servers:
+Configure Claude Desktop to use Smack:
 
-```python
-from mcpengine import ClientSession, StdioServerParameters, types
-from mcpengine.client.stdio import stdio_client
-
-# Create server parameters for stdio connection
-server_params = StdioServerParameters(
-    command="python",  # Executable
-    args=["example_server.py"],  # Optional command line arguments
-    env=None,  # Optional environment variables
-)
-
-
-# Optional: create a sampling callback
-async def handle_sampling_message(
-    message: types.CreateMessageRequestParams,
-) -> types.CreateMessageResult:
-    return types.CreateMessageResult(
-        role="assistant",
-        content=types.TextContent(
-            type="text",
-            text="Hello, world! from model",
-        ),
-        model="gpt-3.5-turbo",
-        stopReason="endTurn",
-    )
-
-
-async def run():
-    async with stdio_client(server_params) as (read, write):
-        async with ClientSession(
-            read, write, sampling_callback=handle_sampling_message
-        ) as session:
-            # Initialize the connection
-            await session.initialize()
-
-            # List available prompts
-            prompts = await session.list_prompts()
-
-            # Get a prompt
-            prompt = await session.get_prompt(
-                "example-prompt", arguments={"arg1": "value"}
-            )
-
-            # List available resources
-            resources = await session.list_resources()
-
-            # List available tools
-            tools = await session.list_tools()
-
-            # Read a resource
-            content, mime_type = await session.read_resource("file://some/path")
-
-            # Call a tool
-            result = await session.call_tool("tool-name", arguments={"arg1": "value"})
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(run())
+Manually:
+```bash
+touch ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
 
-### MCP Primitives
+Add to the file:
 
-The MCP protocol defines three core primitives that servers can implement:
+```json
+{
+    "mcpServers": {
+        "smack_mcp_server": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-p",
+                "8181:8181",
+                "-i",
+                "--rm",
+                "featureformcom/mcpengine-proxy",
+                "http://localhost:8000/sse",
+                "-client_id=client_id_optional",
+                "-client_secret=client_secret_optional",
+            ]
+        }
+    }
+}
+```
 
-| Primitive | Control               | Description                                         | Example Use                  |
-|-----------|-----------------------|-----------------------------------------------------|------------------------------|
-| Prompts   | User-controlled       | Interactive templates invoked by user choice        | Slash commands, menu options |
-| Resources | Application-controlled| Contextual data managed by the client application   | File contents, API responses |
-| Tools     | Model-controlled      | Functions exposed to the LLM to take actions        | API calls, data updates      |
+Via CLI:
+```bash
+mcpengine proxy http://localhost:8000
+```
 
-### Server Capabilities
+Smack provides two main tools:
+- `list_messages()`: Retrieves all messages
+- `post_message(message: str)`: Posts a new message
 
-MCP servers declare capabilities during initialization:
+For more details, see the [Smack example code](https://github.com/featureform/mcp-engine/tree/main/examples/servers/smack).
 
-| Capability  | Feature Flag                 | Description                        |
-|-------------|------------------------------|------------------------------------|
-| `prompts`   | `listChanged`                | Prompt template management         |
-| `resources` | `subscribe`<br/>`listChanged`| Resource exposure and updates      |
-| `tools`     | `listChanged`                | Tool discovery and execution       |
-| `logging`   | -                            | Server logging configuration       |
-| `completion`| -                            | Argument completion suggestions    |
+## Roadmap
 
-## Documentation
-
-- [Model Context Protocol documentation](https://modelcontextprotocol.io)
-- [Model Context Protocol specification](https://spec.modelcontextprotocol.io)
-- [Officially supported servers](https://github.com/modelcontextprotocol/servers)
+- Advanced Auth Flows
+- Service Discovery
+- Fine-Grained Authorization
+- Observability & Telemetry
+- Ongoing FastMCP Compatibility
 
 ## Contributing
 
-We are passionate about supporting contributors of all levels of experience and would love to see you get involved in the project. See the [contributing guide](CONTRIBUTING.md) to get started.
+We welcome feedback, issues, and pull requests. If you'd like to shape MCP's future, open an issue or propose changes on [GitHub](https://github.com/featureform/mcp-engine). We actively maintain MCPEngine to align with real-world enterprise needs.
+
+## Community
+
+Join our discussion on [Slack](https://join.slack.com/t/featureform-community/shared_invite/zt-xhqp2m4i-JOCaN1vRN2NDXSVif10aQg?mc_cid=80bdc03b3b&mc_eid=UNIQID) to share feedback, propose features, or collaborate.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Licensed under the MIT License. See LICENSE for details.

@@ -652,7 +652,7 @@ name = "mcp-smack"
 version = "0.1.0"
 source = { editable = "examples/servers/smack" }
 dependencies = [
-    { name = "mcpengine" },
+    { name = "mcpengine", extra = ["cli"] },
     { name = "psycopg2-binary" },
 ]
 
@@ -665,7 +665,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mcpengine", editable = "." },
+    { name = "mcpengine", extras = ["cli"], virtual = "." },
     { name = "psycopg2-binary", specifier = "==2.9.9" },
 ]
 
@@ -678,7 +678,8 @@ dev = [
 
 [[package]]
 name = "mcpengine"
-source = { editable = "." }
+version = "0.1.0"
+source = { virtual = "." }
 dependencies = [
     { name = "anyio" },
     { name = "httpx" },
@@ -736,7 +737,7 @@ requires-dist = [
     { name = "uvicorn", specifier = ">=0.23.1" },
     { name = "websockets", marker = "extra == 'ws'", specifier = ">=15.0.1" },
 ]
-provides-extras = ["cli", "rich", "ws"]
+provides-extras = ["rich", "cli", "ws"]
 
 [package.metadata.requires-dev]
 dev = [

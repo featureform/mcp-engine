@@ -1,7 +1,7 @@
 [project]
 name = "mcpengine"
-dynamic = ["version"]
-description = "Model Context Protocol SDK"
+version = "0.1.0"
+description = "MCPEngine is a Model Context Protocol SDK built for Production"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Anthropic, PBC." }, { name = "Featureform, Inc." }]
@@ -64,18 +64,6 @@ docs = [
     "mkdocstrings-python>=1.12.2",
 ]
 
-
-[build-system]
-requires = ["hatchling", "uv-dynamic-versioning"]
-build-backend = "hatchling.build"
-
-[tool.hatch.version]
-source = "uv-dynamic-versioning"
-
-[tool.uv-dynamic-versioning]
-vcs = "git"
-style = "pep440"
-bump = true
 
 [project.urls]
 Homepage = "https://www.featureform.com"

@@ -86,9 +86,9 @@ async def test_request_id_match() -> None:
         response = await server_reader.receive()
 
         # Verify response ID matches request ID
-        assert response.root.id == custom_request_id, (
-            "Response ID should match request ID"
-        )
+        assert (
+            response.root.id == custom_request_id
+        ), "Response ID should match request ID"
 
         # Cancel server task
         tg.cancel_scope.cancel()

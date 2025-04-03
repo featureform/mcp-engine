@@ -715,9 +715,9 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
         Returns:
             The resource content as either text or bytes
         """
-        assert self._mcpengine is not None, (
-            "Context is not available outside of a request"
-        )
+        assert (
+            self._mcpengine is not None
+        ), "Context is not available outside of a request"
         return await self._mcpengine.read_resource(uri)
 
     async def log(

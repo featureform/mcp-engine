@@ -231,8 +231,7 @@ Add to the file:
             "command": "docker",
             "args": [
                 "run",
-                "-p",
-                "8181:8181",
+                "--net=host",
                 "-i",
                 "--rm",
                 "featureformcom/mcpengine-proxy",

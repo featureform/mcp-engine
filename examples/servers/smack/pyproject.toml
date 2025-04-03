@@ -13,7 +13,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
 ]
-dependencies = ["psycopg2-binary==2.9.9", "mcpengine[cli]"]
+dependencies = ["psycopg2-binary==2.9.9", "mcpengine[cli]>=0.1.2"]
 
 [project.scripts]
 mcp-smack = "mcp_smack.server:main"

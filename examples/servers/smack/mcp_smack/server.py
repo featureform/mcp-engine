@@ -17,7 +17,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-from db import MessageDB
+from .db import MessageDB
 from mcpengine import Context, MCPEngine
 
 # Configure logging

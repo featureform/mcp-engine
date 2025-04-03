@@ -2,6 +2,8 @@
 
 **Production-Grade Implementation of the Model Context Protocol (MCP)**
 
+![MCPEngine Logo](assets/logo.png)
+
 ## Overview
 
 **MCPEngine** is a production-grade, HTTP-first implementation of the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). It provides a secure, scalable, and modern framework for exposing data, tools, and prompts to Large Language Models (LLMs) via MCP.
@@ -227,8 +229,12 @@ Add to the file:
                 "run",
                 "-p",
                 "8181:8181",
+                "-i",
+                "--rm",
                 "featureformcom/mcpengine-proxy",
-                "http://localhost:8000/sse"
+                "http://localhost:8000/sse",
+                "-client_id=client_id_optional",
+                "-client_secret=client_secret_optional",
             ]
         }
     }

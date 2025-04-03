@@ -212,6 +212,28 @@ class MCPEngine:
             logger.error(f"Error reading resource {uri}: {e}")
             raise ResourceError(str(e))
 
+    def authorize(
+            self, scopes=Iterable[str] | None
+    ) -> Callable[[AnyFunction], AnyFunction]:
+        """Require authentication for this handler.
+
+        Args:
+            scopes: A list of scopes that the user must be authorized for to call this handler.
+        """
+        # Check if user passed function directly instead of calling decorator
+        if callable(scopes):
+            raise TypeError(
+                "The @authorize decorator was used incorrectly. "
+                "Did you forget to call it? Use @authorize() instead of @tool"
+            )
+
+        def decorator(fn: AnyFunction) -> AnyFunction:
+            nonlocal self, scopes
+            self.add_application_scopes(fn.__name__, scopes)
+            return fn
+
+        return decorator
+
     def add_application_scopes(self, handler_name: str, scopes: list[str] | None) -> None:
         """Add scopes to the list of all scopes required by the application.
 
@@ -285,7 +307,6 @@ class MCPEngine:
 
         def decorator(fn: AnyFunction) -> AnyFunction:
             self.add_tool(fn, name=name, description=description, scopes=scopes)
-            self.add_application_scopes(fn.__name__, scopes)
             return fn
 
         return decorator
@@ -387,7 +408,6 @@ class MCPEngine:
                     fn=fn,
                 )
                 self.add_resource(resource)
-                self.add_application_scopes(name, scopes)
 
             return fn
 
@@ -448,7 +468,6 @@ class MCPEngine:
         def decorator(func: AnyFunction) -> AnyFunction:
             prompt = Prompt.from_function(func, name=name, description=description, scopes=scopes)
             self.add_prompt(prompt)
-            self.add_application_scopes(func.__name__, scopes)
             return func
 
         return decorator

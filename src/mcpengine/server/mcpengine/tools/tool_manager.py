@@ -36,11 +36,11 @@ class ToolManager:
         return list(self._tools.values())
 
     def add_tool(
-            self,
-            fn: Callable[..., Any],
-            name: str | None = None,
-            description: str | None = None,
-            scopes: list[str] | None = None,
+        self,
+        fn: Callable[..., Any],
+        name: str | None = None,
+        description: str | None = None,
+        scopes: list[str] | None = None,
     ) -> Tool:
         """Add a tool to the server."""
         tool = Tool.from_function(fn, name=name, description=description, scopes=scopes)
@@ -53,10 +53,10 @@ class ToolManager:
         return tool
 
     async def call_tool(
-            self,
-            name: str,
-            arguments: dict[str, Any],
-            context: Context[ServerSessionT, LifespanContextT] | None = None,
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        context: Context[ServerSessionT, LifespanContextT] | None = None,
     ) -> Any:
         """Call a tool by name with arguments."""
         tool = self.get_tool(name)

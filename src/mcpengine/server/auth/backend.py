@@ -3,6 +3,7 @@
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 """Backend authorization strategies"""
+
 from __future__ import annotations as _annotations
 
 import json
@@ -13,7 +14,12 @@ import httpx
 import jwt
 from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
 from pydantic.networks import HttpUrl
-from starlette.authentication import AuthenticationError, AuthCredentials, BaseUser, SimpleUser
+from starlette.authentication import (
+    AuthenticationError,
+    AuthCredentials,
+    BaseUser,
+    SimpleUser,
+)
 from starlette.responses import Response
 
 import mcpengine
@@ -28,7 +34,9 @@ OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
 
 # TODO: Not Any
-def get_auth_backend(settings: Any, scopes: set[str], scopes_mapping: dict[str, set(str)]) -> AuthenticationBackend:
+def get_auth_backend(
+    settings: Any, scopes: set[str], scopes_mapping: dict[str, set(str)]
+) -> AuthenticationBackend:
     if not settings.authentication_enabled:
         return NoAuthBackend()
 
@@ -46,14 +54,14 @@ def validate_token(jwks: list, token: str) -> Any:
         raise Exception(f"Error decoding token header: {str(e)}")
 
     # Get the key id from header
-    kid = header.get('kid')
+    kid = header.get("kid")
     if not kid:
         raise Exception("Token header missing 'kid' claim")
 
     # Find the matching key in the JWKS
     rsa_key = None
     for key in jwks:
-        if key.get('kid') == kid:
+        if key.get("kid") == kid:
             rsa_key = key
             break
 
@@ -96,14 +104,12 @@ def validate_token(jwks: list, token: str) -> Any:
 
 class AuthenticationBackend(Protocol):
     async def authenticate(
-            self,
-            request: Request,
-            message: JSONRPCMessage,
-    ) -> Optional[Tuple[AuthCredentials, BaseUser]]:
-        ...
+        self,
+        request: Request,
+        message: JSONRPCMessage,
+    ) -> Optional[Tuple[AuthCredentials, BaseUser]]: ...
 
-    def on_error(self, err: Exception) -> Response:
-        ...
+    def on_error(self, err: Exception) -> Response: ...
 
 
 class NoAuthBackend(AuthenticationBackend):
@@ -111,9 +117,9 @@ class NoAuthBackend(AuthenticationBackend):
         pass
 
     async def authenticate(
-            self,
-            request: Request,
-            message: JSONRPCMessage,
+        self,
+        request: Request,
+        message: JSONRPCMessage,
     ) -> Optional[Tuple[AuthCredentials, BaseUser]]:
         pass
 
@@ -135,10 +141,7 @@ class BearerTokenBackend(AuthenticationBackend):
     scopes_mapping: dict[str, set[str]]
 
     def __init__(
-            self,
-            issuer_url: HttpUrl,
-            scopes: set[str],
-            scopes_mapping: dict[str, set[str]]
+        self, issuer_url: HttpUrl, scopes: set[str], scopes_mapping: dict[str, set[str]]
     ) -> None:
         self.issuer_url = issuer_url
         self.application_scopes = scopes
@@ -148,13 +151,15 @@ class BearerTokenBackend(AuthenticationBackend):
         return Response(
             status_code=401,
             content=str(err),
-            headers={"WWW-Authenticate": f"Bearer scope=\"{' '.join(self.application_scopes)}\""},
+            headers={
+                "WWW-Authenticate": f'Bearer scope="{" ".join(self.application_scopes)}"'
+            },
         )
 
     async def authenticate(
-            self,
-            request: Request,
-            message: JSONRPCMessage,
+        self,
+        request: Request,
+        message: JSONRPCMessage,
     ) -> Optional[Tuple[AuthCredentials, BaseUser]]:
         if not isinstance(message.root, mcpengine.JSONRPCRequest):
             pass
@@ -165,7 +170,7 @@ class BearerTokenBackend(AuthenticationBackend):
 
         auth = request.headers.get("Authorization", None)
         if auth is None:
-            raise AuthenticationError('No valid auth header')
+            raise AuthenticationError("No valid auth header")
 
         # TODO: Cache this stuff
         async with httpx.AsyncClient() as client:
@@ -179,7 +184,9 @@ class BearerTokenBackend(AuthenticationBackend):
             try:
                 scheme, token = auth.split()
                 if scheme.lower() != "bearer":
-                    raise AuthenticationError(f'Invalid auth schema "{scheme}", must be Bearer')
+                    raise AuthenticationError(
+                        f'Invalid auth schema "{scheme}", must be Bearer'
+                    )
                 decoded_token = validate_token(jwks_keys, token)
 
                 scopes = decoded_token.get("scope", set())
@@ -188,7 +195,9 @@ class BearerTokenBackend(AuthenticationBackend):
 
                 needed_scopes = self.scopes_mapping.get(message.params["name"], set())
                 if needed_scopes.difference(scopes):
-                    raise AuthenticationError(f'Invalid auth scopes, needed: {needed_scopes}, received: {scopes}')
+                    raise AuthenticationError(
+                        f"Invalid auth scopes, needed: {needed_scopes}, received: {scopes}"
+                    )
 
                 message.params["user_context"] = UserContext(
                     name=decoded_token.get("name", None),

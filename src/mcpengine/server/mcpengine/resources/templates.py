@@ -25,9 +25,9 @@ class ResourceTemplate(BaseModel):
     )
     name: str = Field(description="Name of the resource")
     description: str | None = Field(description="Description of what the resource does")
-    scopes: list[str] | None = Field(
-        None, description="List of scopes required for this resource"
-    ),
+    scopes: list[str] | None = (
+        Field(None, description="List of scopes required for this resource"),
+    )
     mime_type: str = Field(
         default="text/plain", description="MIME type of the resource content"
     )
@@ -38,13 +38,13 @@ class ResourceTemplate(BaseModel):
 
     @classmethod
     def from_function(
-            cls,
-            fn: Callable[..., Any],
-            uri_template: str,
-            name: str | None = None,
-            description: str | None = None,
-            scopes: list[str] | None = None,
-            mime_type: str | None = None,
+        cls,
+        fn: Callable[..., Any],
+        uri_template: str,
+        name: str | None = None,
+        description: str | None = None,
+        scopes: list[str] | None = None,
+        mime_type: str | None = None,
     ) -> ResourceTemplate:
         """Create a template from a function."""
         func_name = name or fn.__name__

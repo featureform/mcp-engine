@@ -65,7 +65,7 @@ mcp = MCPEngine(
     "smack",
     lifespan=app_lifespan,
     authentication_enabled=True,
-    issuer_url="http://localhost:8080/realms/master"
+    issuer_url="http://localhost:8080/realms/master",
 )
 
 

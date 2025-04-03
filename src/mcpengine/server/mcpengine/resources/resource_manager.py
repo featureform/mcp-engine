@@ -52,13 +52,13 @@ class ResourceManager:
         return resource
 
     def add_template(
-            self,
-            fn: Callable[..., Any],
-            uri_template: str,
-            name: str | None = None,
-            description: str | None = None,
-            scopes: list[str] | None = None,
-            mime_type: str | None = None,
+        self,
+        fn: Callable[..., Any],
+        uri_template: str,
+        name: str | None = None,
+        description: str | None = None,
+        scopes: list[str] | None = None,
+        mime_type: str | None = None,
     ) -> ResourceTemplate:
         """Add a template from a function."""
         template = ResourceTemplate.from_function(

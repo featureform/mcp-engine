@@ -30,7 +30,11 @@ from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
 from starlette.routing import Mount, Route
 
-from mcpengine.server.auth.backend import get_auth_backend, OAUTH_WELL_KNOWN_PATH, OPENID_WELL_KNOWN_PATH
+from mcpengine.server.auth.backend import (
+    get_auth_backend,
+    OAUTH_WELL_KNOWN_PATH,
+    OPENID_WELL_KNOWN_PATH,
+)
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
 from mcpengine.server.lowlevel.server import Server as MCPServer
@@ -67,8 +71,8 @@ logger = get_logger(__name__)
 
 
 def lifespan_wrapper(
-        app: MCPEngine,
-        lifespan: Callable[[MCPEngine], AbstractAsyncContextManager[LifespanResultT]],
+    app: MCPEngine,
+    lifespan: Callable[[MCPEngine], AbstractAsyncContextManager[LifespanResultT]],
 ) -> Callable[[MCPServer[LifespanResultT]], AbstractAsyncContextManager[object]]:
     @asynccontextmanager
     async def wrap(s: MCPServer[LifespanResultT]) -> AsyncIterator[object]:
@@ -80,7 +84,7 @@ def lifespan_wrapper(
 
 class MCPEngine:
     def __init__(
-            self, name: str | None = None, instructions: str | None = None, **settings: Any
+        self, name: str | None = None, instructions: str | None = None, **settings: Any
     ):
         self.settings = Settings(**settings)
 
@@ -170,7 +174,7 @@ class MCPEngine:
         return Context(request_context=request_context, mcpengine=self)
 
     async def call_tool(
-            self, name: str, arguments: dict[str, Any]
+        self, name: str, arguments: dict[str, Any]
     ) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
         """Call a tool by name with arguments."""
         context = self.get_context()
@@ -218,7 +222,7 @@ class MCPEngine:
             raise ResourceError(str(e))
 
     def authorize(
-            self, scopes: Iterable[str] | None = None
+        self, scopes: Iterable[str] | None = None
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Require authentication for this handler.
 
@@ -239,7 +243,9 @@ class MCPEngine:
 
         return decorator
 
-    def add_application_scopes(self, handler_name: str, scopes: list[str] | None) -> None:
+    def add_application_scopes(
+        self, handler_name: str, scopes: list[str] | None
+    ) -> None:
         """Add scopes to the list of all scopes required by the application.
 
         When we redirect the user to login, we pass all the scopes required by the application.
@@ -255,11 +261,11 @@ class MCPEngine:
         self.scopes.update(scopes)
 
     def add_tool(
-            self,
-            fn: AnyFunction,
-            name: str | None = None,
-            description: str | None = None,
-            scopes: list[str] | None = None,
+        self,
+        fn: AnyFunction,
+        name: str | None = None,
+        description: str | None = None,
+        scopes: list[str] | None = None,
     ) -> None:
         """Add a tool to the server.
 
@@ -272,10 +278,15 @@ class MCPEngine:
             description: Optional description of what the tool does
             scopes: Optional list of scopes required by the tool (defaults to None)
         """
-        self._tool_manager.add_tool(fn, name=name, description=description, scopes=scopes)
+        self._tool_manager.add_tool(
+            fn, name=name, description=description, scopes=scopes
+        )
 
     def tool(
-            self, name: str | None = None, description: str | None = None, scopes: list[str] | None = None
+        self,
+        name: str | None = None,
+        description: str | None = None,
+        scopes: list[str] | None = None,
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a tool.
 
@@ -325,13 +336,13 @@ class MCPEngine:
         self._resource_manager.add_resource(resource)
 
     def resource(
-            self,
-            uri: str,
-            *,
-            name: str | None = None,
-            description: str | None = None,
-            mime_type: str | None = None,
-            scopes: list[str] | None = None,
+        self,
+        uri: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        mime_type: str | None = None,
+        scopes: list[str] | None = None,
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a function as a resource.
 
@@ -427,7 +438,10 @@ class MCPEngine:
         self._prompt_manager.add_prompt(prompt)
 
     def prompt(
-            self, name: str | None = None, description: str | None = None, scopes: list[str] | None = None
+        self,
+        name: str | None = None,
+        description: str | None = None,
+        scopes: list[str] | None = None,
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a prompt.
 
@@ -471,7 +485,9 @@ class MCPEngine:
             )
 
         def decorator(func: AnyFunction) -> AnyFunction:
-            prompt = Prompt.from_function(func, name=name, description=description, scopes=scopes)
+            prompt = Prompt.from_function(
+                func, name=name, description=description, scopes=scopes
+            )
             self.add_prompt(prompt)
             return func
 
@@ -507,9 +523,9 @@ class MCPEngine:
 
         async def handle_sse(request: Request) -> None:
             async with sse.connect_sse(
-                    request.scope,
-                    request.receive,
-                    request._send,  # type: ignore[reportPrivateUsage]
+                request.scope,
+                request.receive,
+                request._send,  # type: ignore[reportPrivateUsage]
             ) as streams:
                 await self._mcp_server.run(
                     streams[0],
@@ -527,8 +543,16 @@ class MCPEngine:
         middleware = []
 
         routes = [
-            Route(f"/{OAUTH_WELL_KNOWN_PATH}", endpoint=handle_well_known, methods=["GET", "OPTIONS"]),
-            Route(f"/{OPENID_WELL_KNOWN_PATH}", endpoint=handle_well_known, methods=["GET", "OPTIONS"]),
+            Route(
+                f"/{OAUTH_WELL_KNOWN_PATH}",
+                endpoint=handle_well_known,
+                methods=["GET", "OPTIONS"],
+            ),
+            Route(
+                f"/{OPENID_WELL_KNOWN_PATH}",
+                endpoint=handle_well_known,
+                methods=["GET", "OPTIONS"],
+            ),
             Route(self.settings.sse_path, endpoint=handle_sse),
             Mount(self.settings.message_path, app=sse.handle_post_message),
         ]
@@ -559,7 +583,7 @@ class MCPEngine:
         ]
 
     async def get_prompt(
-            self, name: str, arguments: dict[str, Any] | None = None
+        self, name: str, arguments: dict[str, Any] | None = None
     ) -> GetPromptResult:
         """Get a prompt by name with arguments."""
         try:
@@ -572,7 +596,7 @@ class MCPEngine:
 
 
 def _convert_to_content(
-        result: Any,
+    result: Any,
 ) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
     """Convert a result to a sequence of content objects."""
     if result is None:
@@ -585,8 +609,7 @@ def _convert_to_content(
         return [result.to_image_content()]
 
     if isinstance(result, list | tuple):
-        return list(chain.from_iterable(
-            _convert_to_content(item) for item in result))  # type: ignore[reportUnknownVariableType]
+        return list(chain.from_iterable(_convert_to_content(item) for item in result))  # type: ignore[reportUnknownVariableType]
 
     if not isinstance(result, str):
         try:
@@ -635,11 +658,11 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
     _mcpengine: MCPEngine | None
 
     def __init__(
-            self,
-            *,
-            request_context: RequestContext[ServerSessionT, LifespanContextT] | None = None,
-            mcpengine: MCPEngine | None = None,
-            **kwargs: Any,
+        self,
+        *,
+        request_context: RequestContext[ServerSessionT, LifespanContextT] | None = None,
+        mcpengine: MCPEngine | None = None,
+        **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._request_context = request_context
@@ -660,7 +683,7 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
         return self._request_context
 
     async def report_progress(
-            self, progress: float, total: float | None = None
+        self, progress: float, total: float | None = None
     ) -> None:
         """Report progress for the current operation.
 
@@ -691,17 +714,17 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
         Returns:
             The resource content as either text or bytes
         """
-        assert (
-                self._mcpengine is not None
-        ), "Context is not available outside of a request"
+        assert self._mcpengine is not None, (
+            "Context is not available outside of a request"
+        )
         return await self._mcpengine.read_resource(uri)
 
     async def log(
-            self,
-            level: Literal["debug", "info", "warning", "error"],
-            message: str,
-            *,
-            logger_name: str | None = None,
+        self,
+        level: Literal["debug", "info", "warning", "error"],
+        message: str,
+        *,
+        logger_name: str | None = None,
     ) -> None:
         """Send a log message to the client.
 

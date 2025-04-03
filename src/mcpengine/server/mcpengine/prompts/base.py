@@ -53,7 +53,7 @@ message_validator = TypeAdapter[UserMessage | AssistantMessage](
 )
 
 SyncPromptResult = (
-        str | Message | dict[str, Any] | Sequence[str | Message | dict[str, Any]]
+    str | Message | dict[str, Any] | Sequence[str | Message | dict[str, Any]]
 )
 PromptResult = SyncPromptResult | Awaitable[SyncPromptResult]
 
@@ -77,9 +77,9 @@ class Prompt(BaseModel):
     description: str | None = Field(
         None, description="Description of what the prompt does"
     )
-    scopes: list[str] | None = Field(
-        None, description="List of scopes required for this prompt"
-    ),
+    scopes: list[str] | None = (
+        Field(None, description="List of scopes required for this prompt"),
+    )
     arguments: list[PromptArgument] | None = Field(
         None, description="Arguments that can be passed to the prompt"
     )
@@ -87,11 +87,11 @@ class Prompt(BaseModel):
 
     @classmethod
     def from_function(
-            cls,
-            fn: Callable[..., PromptResult | Awaitable[PromptResult]],
-            name: str | None = None,
-            description: str | None = None,
-            scopes: list[str] | None = None,
+        cls,
+        fn: Callable[..., PromptResult | Awaitable[PromptResult]],
+        name: str | None = None,
+        description: str | None = None,
+        scopes: list[str] | None = None,
     ) -> "Prompt":
         """Create a Prompt from a function.
 

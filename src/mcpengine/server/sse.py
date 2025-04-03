@@ -74,7 +74,9 @@ class SseServerTransport:
     ]
     _auth_backend: AuthenticationBackend | None
 
-    def __init__(self, endpoint: str, auth_backend: AuthenticationBackend | None = None) -> None:
+    def __init__(
+        self, endpoint: str, auth_backend: AuthenticationBackend | None = None
+    ) -> None:
         """
         Creates a new SSE server transport, which will direct the client to POST
         messages to the relative or absolute URL given.
@@ -139,7 +141,7 @@ class SseServerTransport:
             yield (read_stream, write_stream)
 
     async def handle_post_message(
-            self, scope: Scope, receive: Receive, send: Send
+        self, scope: Scope, receive: Receive, send: Send
     ) -> None:
         logger.debug("Handling POST message")
         request = Request(scope, receive)

@@ -226,21 +226,14 @@ Add to the file:
 
 ```json
 {
-    "mcpServers": {
-        "smack_mcp_server": {
-            "command": "docker",
-            "args": [
-                "run",
-                "--net=host",
-                "-i",
-                "--rm",
-                "featureformcom/mcpengine-proxy",
-                "http://localhost:8000/sse",
-                "-client_id=client_id_optional",
-                "-client_secret=client_secret_optional",
-            ]
-        }
+  "mcpServers": {
+    "smack_mcp_server": {
+      "command": "bash",
+      "args": [
+        "docker attach mcpengine_proxy || docker run --rm -i --net=host --name mcpengine_proxy featureformcom/mcpengine-proxy -host=http://localhost:8000 -debug -client_id=optional -client_secret=optional",
+      ]
     }
+  }
 }
 ```
 

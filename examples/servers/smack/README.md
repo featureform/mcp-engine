@@ -69,22 +69,9 @@ Add the following:
 {
   "mcpServers": {
     "smack_mcp_server": {
-      "command": "docker",
+      "command": "bash",
       "args": [
-        "run",
-        "-it",
-        "--rm",
-        "--net=host",
-        "featureformcom/mcpengine:latest",
-        "-host",
-        "localhost:8000",
-        "-sse_path",
-        "/sse",
-        "-debug=false",
-        "-client_id",
-        "your_client_id",
-        "-client_secret",
-        "your_client_secret"
+        "docker attach mcpengine_proxy || docker run --rm -i --net=host --name mcpengine_proxy featureformcom/mcpengine-proxy -host=http://localhost:8000 -debug -client_id=optional -client_secret=optional",
       ]
     }
   }

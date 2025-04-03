@@ -9,7 +9,7 @@ from collections.abc import Callable
 from contextlib import (
     AbstractAsyncContextManager,
 )
-from typing import Generic, Literal
+from typing import Generic, Literal, Any
 
 from pydantic import Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -55,7 +55,7 @@ class Settings(BaseSettings, Generic[LifespanResultT]):
     )
 
     lifespan: (
-            Callable[["MCPEngine"], AbstractAsyncContextManager[LifespanResultT]] | None
+            Callable[[Any], AbstractAsyncContextManager[LifespanResultT]] | None
     ) = Field(None, description="Lifespan context manager")
 
     # auth settings

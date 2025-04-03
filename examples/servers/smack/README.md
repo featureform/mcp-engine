@@ -1,5 +1,7 @@
 # Smack - Message Storage Service
 
+<img src="../../../assets/mcpengine-smack-demo.png" alt="MCPEngine Smack Demo" width="400">
+
 Smack is a simple messaging service built on MCPEngine, demonstrating how to securely store and retrieve messages using PostgreSQL in a production-grade MCP environment.
 
 ## Overview

@@ -199,6 +199,8 @@ def echo_tool(msg: str):
 
 ## Smack - Message Storage Example
 
+<img src="assets/mcpengine-smack-demo.png" alt="MCPEngine Smack Demo" width="400">
+
 Smack is a simple messaging service example with PostgreSQL storage that demonstrates MCPEngine's capabilities with OAuth 2.1 authentication.
 
 ### Quick Start

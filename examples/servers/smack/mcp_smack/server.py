@@ -69,7 +69,7 @@ mcp = MCPEngine(
 )
 
 
-@mcp.authorize(scopes=["messages:list"])
+@mcp.auth(scopes=["messages:list"])
 @mcp.tool()
 async def list_messages(ctx: Context) -> str:
     """
@@ -104,7 +104,7 @@ async def list_messages(ctx: Context) -> str:
         return f"An error occurred while retrieving messages: {str(e)}"
 
 
-@mcp.authorize(scopes=["messages:post"])
+@mcp.auth(scopes=["messages:post"])
 @mcp.tool()
 async def post_message(ctx: Context, message: str) -> str:
     """

@@ -222,7 +222,7 @@ class MCPEngine:
             logger.error(f"Error reading resource {uri}: {e}")
             raise ResourceError(str(e))
 
-    def authorize(
+    def auth(
         self, scopes: Iterable[str] | None = None
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Require authentication for this handler.

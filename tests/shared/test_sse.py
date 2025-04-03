@@ -85,7 +85,7 @@ def make_server_app() -> Starlette:
 
     async def handle_sse(request: Request) -> None:
         async with sse.connect_sse(
-            request.scope, request.receive, request._send
+                request.scope, request.receive, request._send
         ) as streams:
             await server.run(
                 streams[0], streams[1], server.create_initialization_options()
@@ -167,8 +167,8 @@ async def test_raw_sse_connection(http_client: httpx.AsyncClient) -> None:
             async with http_client.stream("GET", "/sse") as response:
                 assert response.status_code == 200
                 assert (
-                    response.headers["content-type"]
-                    == "text/event-stream; charset=utf-8"
+                        response.headers["content-type"]
+                        == "text/event-stream; charset=utf-8"
                 )
 
                 line_number = 0
@@ -202,7 +202,7 @@ async def test_sse_client_basic_connection(server: None, server_url: str) -> Non
 
 @pytest.fixture
 async def initialized_sse_client_session(
-    server, server_url: str
+        server, server_url: str
 ) -> AsyncGenerator[ClientSession, None]:
     async with sse_client(server_url + "/sse", sse_read_timeout=0.5) as streams:
         async with ClientSession(*streams) as session:
@@ -212,7 +212,7 @@ async def initialized_sse_client_session(
 
 @pytest.mark.anyio
 async def test_sse_client_happy_request_and_response(
-    initialized_sse_client_session: ClientSession,
+        initialized_sse_client_session: ClientSession,
 ) -> None:
     session = initialized_sse_client_session
     response = await session.read_resource(uri=AnyUrl("foobar://should-work"))
@@ -223,7 +223,7 @@ async def test_sse_client_happy_request_and_response(
 
 @pytest.mark.anyio
 async def test_sse_client_exception_handling(
-    initialized_sse_client_session: ClientSession,
+        initialized_sse_client_session: ClientSession,
 ) -> None:
     session = initialized_sse_client_session
     with pytest.raises(McpError, match="OOPS! no resource with that URI was found"):
@@ -235,7 +235,7 @@ async def test_sse_client_exception_handling(
     "this test highlights a possible bug in SSE read timeout exception handling"
 )
 async def test_sse_client_timeout(
-    initialized_sse_client_session: ClientSession,
+        initialized_sse_client_session: ClientSession,
 ) -> None:
     session = initialized_sse_client_session
 

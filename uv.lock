@@ -665,7 +665,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mcpengine", extras = ["cli"], virtual = "." },
+    { name = "mcpengine", extras = ["cli"], editable = "." },
     { name = "psycopg2-binary", specifier = "==2.9.9" },
 ]
 
@@ -679,7 +679,7 @@ dev = [
 [[package]]
 name = "mcpengine"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "anyio" },
     { name = "httpx" },

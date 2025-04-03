@@ -2,7 +2,7 @@
 
 **Production-Grade Implementation of the Model Context Protocol (MCP)**
 
-<img src="assets/logo.png" alt="MCPEngine Logo" width="50%">
+<img src="assets/logo.png" alt="MCPEngine Logo" width="400">
 
 ## Overview
 

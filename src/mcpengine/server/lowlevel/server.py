@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 """
 MCP Server Module
 
@@ -81,7 +87,6 @@ import mcpengine.types as types
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.models import InitializationOptions
 from mcpengine.server.session import ServerSession
-from mcpengine.server.stdio import stdio_server as stdio_server
 from mcpengine.shared.context import RequestContext
 from mcpengine.shared.exceptions import McpError
 from mcpengine.shared.session import RequestResponder
@@ -538,14 +543,21 @@ class Server(Generic[LifespanResultT]):
 
             token = None
             try:
+                user_context = req.params.user_context
+            except Exception:
+                user_context = {}
+
+            try:
                 # Set our global state that can be retrieved via
                 # app.get_request_context()
                 token = request_ctx.set(
                     RequestContext(
-                        message.request_id,
-                        message.request_meta,
-                        session,
-                        lifespan_context,
+                        request_id=message.request_id,
+                        meta=message.request_meta,
+                        session=session,
+                        lifespan_context=lifespan_context,
+                        user_id=user_context.get("sid"),
+                        user_name=user_context.get("name"),
                     )
                 )
                 response = await handler(req)
@@ -576,14 +588,12 @@ class Server(Generic[LifespanResultT]):
             assert type(notify) in self.notification_handlers
 
             handler = self.notification_handlers[type(notify)]
-            logger.debug(
-                f"Dispatching notification of type " f"{type(notify).__name__}"
-            )
+            logger.debug(f"Dispatching notification of type {type(notify).__name__}")
 
             try:
                 await handler(notify)
             except Exception as err:
-                logger.error(f"Uncaught exception in notification handler: " f"{err}")
+                logger.error(f"Uncaught exception in notification handler: {err}")
 
 
 async def _ping_handler(request: types.PingRequest) -> types.ServerResult:

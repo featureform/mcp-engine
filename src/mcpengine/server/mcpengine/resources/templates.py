@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 """Resource template functionality."""
 
 from __future__ import annotations
@@ -20,6 +26,9 @@ class ResourceTemplate(BaseModel):
     )
     name: str = Field(description="Name of the resource")
     description: str | None = Field(description="Description of what the resource does")
+    scopes: list[str] | None = (
+        Field(None, description="List of scopes required for this resource"),
+    )
     mime_type: str = Field(
         default="text/plain", description="MIME type of the resource content"
     )
@@ -35,6 +44,7 @@ class ResourceTemplate(BaseModel):
         uri_template: str,
         name: str | None = None,
         description: str | None = None,
+        scopes: list[str] | None = None,
         mime_type: str | None = None,
     ) -> ResourceTemplate:
         """Create a template from a function."""
@@ -52,6 +62,7 @@ class ResourceTemplate(BaseModel):
             uri_template=uri_template,
             name=func_name,
             description=description or fn.__doc__ or "",
+            scopes=scopes,
             mime_type=mime_type or "text/plain",
             fn=fn,
             parameters=parameters,

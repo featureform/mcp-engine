@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 """
 SSE Server Transport Module
 
@@ -46,6 +52,7 @@ from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
 import mcpengine.types as types
+from mcpengine.server.auth.backend import AuthenticationBackend
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +73,11 @@ class SseServerTransport:
     _read_stream_writers: dict[
         UUID, MemoryObjectSendStream[types.JSONRPCMessage | Exception]
     ]
+    _auth_backend: AuthenticationBackend | None
 
-    def __init__(self, endpoint: str) -> None:
+    def __init__(
+        self, endpoint: str, auth_backend: AuthenticationBackend | None = None
+    ) -> None:
         """
         Creates a new SSE server transport, which will direct the client to POST
         messages to the relative or absolute URL given.
@@ -76,6 +86,7 @@ class SseServerTransport:
         super().__init__()
         self._endpoint = endpoint
         self._read_stream_writers = {}
+        self._auth_backend = auth_backend
         logger.debug(f"SseServerTransport initialized with endpoint: {endpoint}")
 
     @asynccontextmanager
@@ -167,6 +178,14 @@ class SseServerTransport:
             response = Response("Could not parse message", status_code=400)
             await response(scope, receive, send)
             await writer.send(err)
+            return
+
+        try:
+            await self._auth_backend.authenticate(request, message)
+        except Exception as e:
+            logger.error(f"Failed to authenticate: {e}")
+            response = self._auth_backend.on_error(e)
+            await response(scope, receive, send)
             return
 
         logger.debug(f"Sending message to writer: {message}")

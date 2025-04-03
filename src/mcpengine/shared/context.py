@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 from dataclasses import dataclass
 from typing import Any, Generic
 
@@ -16,3 +22,5 @@ class RequestContext(Generic[SessionT, LifespanContextT]):
     meta: RequestParams.Meta | None
     session: SessionT
     lifespan_context: LifespanContextT
+    user_id: str | None = None
+    user_name: str | None = None

@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 """
 Smack Messaging Server
 
@@ -11,9 +17,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
+from db import MessageDB
 from mcpengine import Context, MCPEngine
-
-from .db import MessageDB
 
 # Configure logging
 logging.basicConfig(
@@ -56,9 +61,15 @@ async def app_lifespan(server: MCPEngine) -> AsyncIterator[AppContext]:
             logger.error(f"Error closing database connection: {e}")
 
 
-mcp = MCPEngine("smack", lifespan=app_lifespan)
+mcp = MCPEngine(
+    "smack",
+    lifespan=app_lifespan,
+    authentication_enabled=True,
+    issuer_url="http://localhost:8080/realms/master",
+)
 
 
+@mcp.auth(scopes=["messages:list"])
 @mcp.tool()
 async def list_messages(ctx: Context) -> str:
     """
@@ -93,19 +104,20 @@ async def list_messages(ctx: Context) -> str:
         return f"An error occurred while retrieving messages: {str(e)}"
 
 
+@mcp.auth(scopes=["messages:post"])
 @mcp.tool()
-async def post_message(ctx: Context, sender: str, message: str) -> str:
+async def post_message(ctx: Context, message: str) -> str:
     """
     Post a new message to the database.
 
     Args:
-        ctx: The request context
-        sender: The name of the message sender
+        ctx: The request context, which includes authenticated user information
         message: The content of the message
 
     Returns:
         str: Success or failure message
     """
+    sender = ctx.user_name
     logger.info(f"Handling post_message request from {sender}")
 
     # Input validation

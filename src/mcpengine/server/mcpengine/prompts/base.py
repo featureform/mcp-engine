@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 """Base classes for MCPEngine prompts."""
 
 import inspect
@@ -72,6 +78,9 @@ class Prompt(BaseModel):
     description: str | None = Field(
         None, description="Description of what the prompt does"
     )
+    scopes: list[str] | None = (
+        Field(None, description="List of scopes required for this prompt"),
+    )
     arguments: list[PromptArgument] | None = Field(
         None, description="Arguments that can be passed to the prompt"
     )
@@ -83,6 +92,7 @@ class Prompt(BaseModel):
         fn: Callable[..., PromptResult | Awaitable[PromptResult]],
         name: str | None = None,
         description: str | None = None,
+        scopes: list[str] | None = None,
     ) -> "Prompt":
         """Create a Prompt from a function.
 
@@ -119,6 +129,7 @@ class Prompt(BaseModel):
         return cls(
             name=func_name,
             description=description or fn.__doc__ or "",
+            scopes=scopes,
             arguments=arguments,
             fn=fn,
         )

@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 """Base classes and interfaces for MCPEngine resources."""
 
 import abc
@@ -25,6 +31,10 @@ class Resource(BaseModel, abc.ABC):
     name: str | None = Field(description="Name of the resource", default=None)
     description: str | None = Field(
         description="Description of the resource", default=None
+    )
+    scopes: list[str] | None = Field(
+        None,
+        description="List of scopes required for this resource"
     )
     mime_type: str = Field(
         default="text/plain",

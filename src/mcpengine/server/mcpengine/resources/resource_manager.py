@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 """Resource manager functionality."""
 
 from collections.abc import Callable
@@ -52,6 +58,7 @@ class ResourceManager:
         uri_template: str,
         name: str | None = None,
         description: str | None = None,
+        scopes: list[str] | None = None,
         mime_type: str | None = None,
     ) -> ResourceTemplate:
         """Add a template from a function."""
@@ -60,6 +67,7 @@ class ResourceManager:
             uri_template=uri_template,
             name=name,
             description=description,
+            scopes=scopes,
             mime_type=mime_type,
         )
         self._templates[template.uri_template] = template

@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 from __future__ import annotations as _annotations
 
 import inspect
@@ -24,6 +30,9 @@ class Tool(BaseModel):
     fn: Callable[..., Any] = Field(exclude=True)
     name: str = Field(description="Name of the tool")
     description: str = Field(description="Description of what the tool does")
+    scopes: list[str] | None = (
+        Field(None, description="List of scopes required for this tool"),
+    )
     parameters: dict[str, Any] = Field(description="JSON schema for tool parameters")
     fn_metadata: FuncMetadata = Field(
         description="Metadata about the function including a pydantic model for tool"
@@ -40,6 +49,7 @@ class Tool(BaseModel):
         fn: Callable[..., Any],
         name: str | None = None,
         description: str | None = None,
+        scopes: list[str] | None = None,
         context_kwarg: str | None = None,
     ) -> Tool:
         """Create a Tool from a function."""
@@ -70,6 +80,7 @@ class Tool(BaseModel):
             fn=fn,
             name=func_name,
             description=func_doc,
+            scopes=scopes,
             parameters=parameters,
             fn_metadata=func_arg_metadata,
             is_async=is_async,

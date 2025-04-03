@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 from __future__ import annotations as _annotations
 
 from collections.abc import Callable
@@ -35,9 +41,10 @@ class ToolManager:
         fn: Callable[..., Any],
         name: str | None = None,
         description: str | None = None,
+        scopes: list[str] | None = None,
     ) -> Tool:
         """Add a tool to the server."""
-        tool = Tool.from_function(fn, name=name, description=description)
+        tool = Tool.from_function(fn, name=name, description=description, scopes=scopes)
         existing = self._tools.get(tool.name)
         if existing:
             if self.warn_on_duplicate_tools:

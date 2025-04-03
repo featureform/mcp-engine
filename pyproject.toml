@@ -32,6 +32,7 @@ dependencies = [
     "sse-starlette>=1.6.1",
     "pydantic-settings>=2.5.2",
     "uvicorn>=0.23.1",
+    "pyjwt[crypto]==2.10.1",
 ]
 
 [project.optional-dependencies]
@@ -45,6 +46,7 @@ mcpengine = "mcpengine.cli:app [cli]"
 [tool.uv]
 resolution = "lowest-direct"
 default-groups = ["dev", "docs"]
+package = true
 
 [dependency-groups]
 dev = [

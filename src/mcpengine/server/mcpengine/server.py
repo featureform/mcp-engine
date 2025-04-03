@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 """MCPEngine - A more ergonomic interface for MCP servers."""
 
 from __future__ import annotations as _annotations
@@ -12,17 +18,24 @@ from contextlib import (
 )
 from itertools import chain
 from typing import Any, Generic, Literal
+from urllib.parse import urljoin
 
 import anyio
+import httpx
 import pydantic_core
 import uvicorn
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pydantic.networks import AnyUrl
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from starlette.applications import Starlette
 from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Mount, Route
 
+from mcpengine.server.auth.backend import (
+    OAUTH_WELL_KNOWN_PATH,
+    OPENID_WELL_KNOWN_PATH,
+    get_auth_backend,
+)
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
 from mcpengine.server.lowlevel.server import Server as MCPServer
@@ -38,6 +51,7 @@ from mcpengine.server.mcpengine.tools import ToolManager
 from mcpengine.server.mcpengine.utilities.logging import configure_logging, get_logger
 from mcpengine.server.mcpengine.utilities.types import Image
 from mcpengine.server.session import ServerSession, ServerSessionT
+from mcpengine.server.settings import Settings
 from mcpengine.server.sse import SseServerTransport
 from mcpengine.server.stdio import stdio_server
 from mcpengine.shared.context import LifespanContextT, RequestContext
@@ -55,48 +69,6 @@ from mcpengine.types import ResourceTemplate as MCPResourceTemplate
 from mcpengine.types import Tool as MCPTool
 
 logger = get_logger(__name__)
-
-
-class Settings(BaseSettings, Generic[LifespanResultT]):
-    """MCPEngine server settings.
-
-    All settings can be configured via environment variables with the prefix MCPENGINE_.
-    For example, MCPENGINE_DEBUG=true will set debug=True.
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="MCPENGINE_",
-        env_file=".env",
-        extra="ignore",
-    )
-
-    # Server settings
-    debug: bool = False
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-
-    # HTTP settings
-    host: str = "0.0.0.0"
-    port: int = 8000
-    sse_path: str = "/sse"
-    message_path: str = "/messages/"
-
-    # resource settings
-    warn_on_duplicate_resources: bool = True
-
-    # tool settings
-    warn_on_duplicate_tools: bool = True
-
-    # prompt settings
-    warn_on_duplicate_prompts: bool = True
-
-    dependencies: list[str] = Field(
-        default_factory=list,
-        description="List of dependencies to install in the server environment",
-    )
-
-    lifespan: (
-        Callable[[MCPEngine], AbstractAsyncContextManager[LifespanResultT]] | None
-    ) = Field(None, description="Lifespan context manager")
 
 
 def lifespan_wrapper(
@@ -134,6 +106,11 @@ class MCPEngine:
             warn_on_duplicate_prompts=self.settings.warn_on_duplicate_prompts
         )
         self.dependencies = self.settings.dependencies
+
+        # The set of required scopes.
+        self.scopes = set()
+        # The mapping of function to scopes required for it.
+        self.scopes_mapping: dict[str, set[str]] = {}
 
         # Set up MCP protocol handlers
         self._setup_handlers()
@@ -245,11 +222,51 @@ class MCPEngine:
             logger.error(f"Error reading resource {uri}: {e}")
             raise ResourceError(str(e))
 
+    def auth(
+        self, scopes: Iterable[str] | None = None
+    ) -> Callable[[AnyFunction], AnyFunction]:
+        """Require authentication for this handler.
+
+        Args:
+            scopes: A list of scopes that the user must be authorized for.
+        """
+        # Check if user passed function directly instead of calling decorator
+        if callable(scopes):
+            raise TypeError(
+                "The @authorize decorator was used incorrectly. "
+                "Did you forget to call it? Use @authorize() instead of @tool"
+            )
+
+        def decorator(fn: AnyFunction) -> AnyFunction:
+            nonlocal self, scopes
+            self.add_application_scopes(fn.__name__, scopes)
+            return fn
+
+        return decorator
+
+    def add_application_scopes(
+        self, handler_name: str, scopes: list[str] | None
+    ) -> None:
+        """Add scopes to the list of all scopes required by the application.
+
+        When we redirect the user to login, we pass all the scopes required
+        by the application. This is to prevent the user having to login in
+        multiple times for each unique set of scopes on a handler.
+
+        Args:
+            scopes: List of scopes to add.
+        """
+        if scopes is None:
+            return
+        self.scopes_mapping[handler_name] = set(scopes)
+        self.scopes.update(scopes)
+
     def add_tool(
         self,
         fn: AnyFunction,
         name: str | None = None,
         description: str | None = None,
+        scopes: list[str] | None = None,
     ) -> None:
         """Add a tool to the server.
 
@@ -260,11 +277,17 @@ class MCPEngine:
             fn: The function to register as a tool
             name: Optional name for the tool (defaults to function name)
             description: Optional description of what the tool does
+            scopes: Optional list of scopes required by the tool (defaults to None)
         """
-        self._tool_manager.add_tool(fn, name=name, description=description)
+        self._tool_manager.add_tool(
+            fn, name=name, description=description, scopes=scopes
+        )
 
     def tool(
-        self, name: str | None = None, description: str | None = None
+        self,
+        name: str | None = None,
+        description: str | None = None,
+        scopes: list[str] | None = None,
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a tool.
 
@@ -275,6 +298,7 @@ class MCPEngine:
         Args:
             name: Optional name for the tool (defaults to function name)
             description: Optional description of what the tool does
+            scopes: Optional list of scopes required by the tool (defaults to None)
 
         Example:
             @server.tool()
@@ -299,7 +323,7 @@ class MCPEngine:
             )
 
         def decorator(fn: AnyFunction) -> AnyFunction:
-            self.add_tool(fn, name=name, description=description)
+            self.add_tool(fn, name=name, description=description, scopes=scopes)
             return fn
 
         return decorator
@@ -319,6 +343,7 @@ class MCPEngine:
         name: str | None = None,
         description: str | None = None,
         mime_type: str | None = None,
+        scopes: list[str] | None = None,
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a function as a resource.
 
@@ -336,6 +361,7 @@ class MCPEngine:
             name: Optional name for the resource
             description: Optional description of the resource
             mime_type: Optional MIME type for the resource
+            scopes: Optional list of scopes required by the tool (defaults to None)
 
         Example:
             @server.resource("resource://my-resource")
@@ -385,6 +411,7 @@ class MCPEngine:
                     uri_template=uri,
                     name=name,
                     description=description,
+                    scopes=scopes,
                     mime_type=mime_type or "text/plain",
                 )
             else:
@@ -393,10 +420,12 @@ class MCPEngine:
                     uri=AnyUrl(uri),
                     name=name,
                     description=description,
+                    scopes=scopes,
                     mime_type=mime_type or "text/plain",
                     fn=fn,
                 )
                 self.add_resource(resource)
+
             return fn
 
         return decorator
@@ -410,13 +439,17 @@ class MCPEngine:
         self._prompt_manager.add_prompt(prompt)
 
     def prompt(
-        self, name: str | None = None, description: str | None = None
+        self,
+        name: str | None = None,
+        description: str | None = None,
+        scopes: list[str] | None = None,
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Decorator to register a prompt.
 
         Args:
             name: Optional name for the prompt (defaults to function name)
             description: Optional description of what the prompt does
+            scopes: Optional list of scopes required by the tool (defaults to None)
 
         Example:
             @server.prompt()
@@ -453,7 +486,9 @@ class MCPEngine:
             )
 
         def decorator(func: AnyFunction) -> AnyFunction:
-            prompt = Prompt.from_function(func, name=name, description=description)
+            prompt = Prompt.from_function(
+                func, name=name, description=description, scopes=scopes
+            )
             self.add_prompt(prompt)
             return func
 
@@ -483,7 +518,9 @@ class MCPEngine:
 
     def sse_app(self) -> Starlette:
         """Return an instance of the SSE server app."""
-        sse = SseServerTransport(self.settings.message_path)
+        auth_backend = get_auth_backend(self.settings, self.scopes, self.scopes_mapping)
+
+        sse = SseServerTransport(self.settings.message_path, auth_backend)
 
         async def handle_sse(request: Request) -> None:
             async with sse.connect_sse(
@@ -497,12 +534,34 @@ class MCPEngine:
                     self._mcp_server.create_initialization_options(),
                 )
 
+        async def handle_well_known(_: Request) -> Response:
+            async with httpx.AsyncClient() as client:
+                issuer_url = str(self.settings.issuer_url).rstrip("/") + "/"
+                well_known_url = urljoin(issuer_url, OPENID_WELL_KNOWN_PATH)
+                response = await client.get(well_known_url)
+                return JSONResponse(response.json())
+
+        middleware = []
+
+        routes = [
+            Route(
+                f"/{OAUTH_WELL_KNOWN_PATH}",
+                endpoint=handle_well_known,
+                methods=["GET", "OPTIONS"],
+            ),
+            Route(
+                f"/{OPENID_WELL_KNOWN_PATH}",
+                endpoint=handle_well_known,
+                methods=["GET", "OPTIONS"],
+            ),
+            Route(self.settings.sse_path, endpoint=handle_sse),
+            Mount(self.settings.message_path, app=sse.handle_post_message),
+        ]
+
         return Starlette(
             debug=self.settings.debug,
-            routes=[
-                Route(self.settings.sse_path, endpoint=handle_sse),
-                Mount(self.settings.message_path, app=sse.handle_post_message),
-            ],
+            middleware=middleware,
+            routes=routes,
         )
 
     async def list_prompts(self) -> list[MCPPrompt]:
@@ -656,9 +715,9 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
         Returns:
             The resource content as either text or bytes
         """
-        assert (
-            self._mcpengine is not None
-        ), "Context is not available outside of a request"
+        assert self._mcpengine is not None, (
+            "Context is not available outside of a request"
+        )
         return await self._mcpengine.read_resource(uri)
 
     async def log(
@@ -693,6 +752,14 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
     def request_id(self) -> str:
         """Get the unique ID for this request."""
         return str(self.request_context.request_id)
+
+    @property
+    def user_id(self) -> str:
+        return str(self.request_context.user_id)
+
+    @property
+    def user_name(self) -> str:
+        return str(self.request_context.user_name)
 
     @property
     def session(self):

@@ -1,7 +1,8 @@
 # Copyright (c) 2024 Anthropic, PBC
 # Copyright (c) 2025 Featureform, Inc.
 #
-# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
 
 """MCPEngine - A more ergonomic interface for MCP servers."""
 
@@ -27,13 +28,13 @@ from pydantic import BaseModel
 from pydantic.networks import AnyUrl
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import Response, JSONResponse
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Mount, Route
 
 from mcpengine.server.auth.backend import (
-    get_auth_backend,
     OAUTH_WELL_KNOWN_PATH,
     OPENID_WELL_KNOWN_PATH,
+    get_auth_backend,
 )
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
@@ -227,7 +228,7 @@ class MCPEngine:
         """Require authentication for this handler.
 
         Args:
-            scopes: A list of scopes that the user must be authorized for to call this handler.
+            scopes: A list of scopes that the user must be authorized for.
         """
         # Check if user passed function directly instead of calling decorator
         if callable(scopes):
@@ -248,9 +249,9 @@ class MCPEngine:
     ) -> None:
         """Add scopes to the list of all scopes required by the application.
 
-        When we redirect the user to login, we pass all the scopes required by the application.
-        This is to prevent the user having to login in multiple times for each unique set of scopes
-        on a handler.
+        When we redirect the user to login, we pass all the scopes required
+        by the application. This is to prevent the user having to login in
+        multiple times for each unique set of scopes on a handler.
 
         Args:
             scopes: List of scopes to add.

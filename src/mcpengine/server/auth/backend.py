@@ -1,22 +1,23 @@
 # Copyright (c) 2025 Featureform, Inc.
 #
-# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
 
 """Backend authorization strategies"""
 
 from __future__ import annotations as _annotations
 
 import json
-from typing import Optional, Tuple, Any, Protocol
+from typing import Any, Protocol
 from urllib.parse import urljoin
 
 import httpx
 import jwt
-from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from pydantic.networks import HttpUrl
 from starlette.authentication import (
-    AuthenticationError,
     AuthCredentials,
+    AuthenticationError,
     BaseUser,
     SimpleUser,
 )
@@ -25,7 +26,7 @@ from starlette.responses import Response
 import mcpengine
 from mcpengine.server.auth.context import UserContext
 from mcpengine.server.mcpengine.utilities.logging import get_logger
-from mcpengine.types import Request, JSONRPCMessage
+from mcpengine.types import JSONRPCMessage, Request
 
 logger = get_logger(__name__)
 
@@ -107,7 +108,7 @@ class AuthenticationBackend(Protocol):
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> Optional[Tuple[AuthCredentials, BaseUser]]: ...
+    ) -> AuthCredentials | BaseUser | None: ...
 
     def on_error(self, err: Exception) -> Response: ...
 
@@ -120,7 +121,7 @@ class NoAuthBackend(AuthenticationBackend):
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> Optional[Tuple[AuthCredentials, BaseUser]]:
+    ) -> AuthCredentials | BaseUser | None:
         pass
 
     def on_error(self, err: Exception) -> Response:
@@ -148,19 +149,18 @@ class BearerTokenBackend(AuthenticationBackend):
         self.scopes_mapping = scopes_mapping
 
     def on_error(self, err: Exception) -> Response:
+        bearer = f'Bearer scope="{" ".join(self.application_scopes)}"'
         return Response(
             status_code=401,
             content=str(err),
-            headers={
-                "WWW-Authenticate": f'Bearer scope="{" ".join(self.application_scopes)}"'
-            },
+            headers={"WWW-Authenticate": bearer},
         )
 
     async def authenticate(
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> Optional[Tuple[AuthCredentials, BaseUser]]:
+    ) -> AuthCredentials | BaseUser | None:
         if not isinstance(message.root, mcpengine.JSONRPCRequest):
             pass
         message = message.root
@@ -196,7 +196,8 @@ class BearerTokenBackend(AuthenticationBackend):
                 needed_scopes = self.scopes_mapping.get(message.params["name"], set())
                 if needed_scopes.difference(scopes):
                     raise AuthenticationError(
-                        f"Invalid auth scopes, needed: {needed_scopes}, received: {scopes}"
+                        f"Invalid auth scopes, needed: {needed_scopes}, "
+                        f"received: {scopes}"
                     )
 
                 message.params["user_context"] = UserContext(

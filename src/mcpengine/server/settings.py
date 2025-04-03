@@ -1,7 +1,8 @@
 # Copyright (c) 2024 Anthropic, PBC
 # Copyright (c) 2025 Featureform, Inc.
 #
-# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
 
 from __future__ import annotations as _annotations
 
@@ -9,7 +10,7 @@ from collections.abc import Callable
 from contextlib import (
     AbstractAsyncContextManager,
 )
-from typing import Generic, Literal, Any
+from typing import Any, Generic, Literal
 
 from pydantic import Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict

@@ -2,7 +2,8 @@
 
 # Copyright (c) 2025 Featureform, Inc.
 #
-# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
 
 """
 Smack Messaging Server
@@ -12,7 +13,6 @@ message listing and posting capabilities.
 """
 
 import logging
-import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass

@@ -12,10 +12,10 @@ from pydantic.networks import HttpUrl
 from starlette.authentication import AuthenticationError, AuthCredentials, BaseUser, SimpleUser
 from starlette.responses import Response
 
-import mcp
-from mcp.server.auth.context import UserContext
-from mcp.server.fastmcp.utilities.logging import get_logger
-from mcp.types import Request, JSONRPCMessage
+import mcpengine
+from mcpengine.server.auth.context import UserContext
+from mcpengine.server.mcpengine.utilities.logging import get_logger
+from mcpengine.types import Request, JSONRPCMessage
 
 logger = get_logger(__name__)
 
@@ -152,7 +152,7 @@ class BearerTokenBackend(AuthenticationBackend):
             request: Request,
             message: JSONRPCMessage,
     ) -> Optional[Tuple[AuthCredentials, BaseUser]]:
-        if not isinstance(message.root, mcp.JSONRPCRequest):
+        if not isinstance(message.root, mcpengine.JSONRPCRequest):
             pass
         message = message.root
 

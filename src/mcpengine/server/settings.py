@@ -1,5 +1,3 @@
-"""FastMCP - A more ergonomic interface for MCP servers."""
-
 from __future__ import annotations as _annotations
 
 from collections.abc import Callable
@@ -8,25 +6,21 @@ from contextlib import (
 )
 from typing import Generic, Literal
 
-from pydantic import Field
-from pydantic.networks import HttpUrl
+from pydantic import Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from mcp.server.fastmcp.utilities.logging import get_logger
-from mcp.server.lowlevel.server import LifespanResultT
-
-logger = get_logger(__name__)
+from mcpengine.server.lowlevel.server import LifespanResultT
 
 
 class Settings(BaseSettings, Generic[LifespanResultT]):
-    """FastMCP server settings.
+    """MCPEngine server settings.
 
-    All settings can be configured via environment variables with the prefix FASTMCP_.
-    For example, FASTMCP_DEBUG=true will set debug=True.
+    All settings can be configured via environment variables with the prefix MCPENGINE_.
+    For example, MCPENGINE_DEBUG=true will set debug=True.
     """
 
     model_config = SettingsConfigDict(
-        env_prefix="FASTMCP_",
+        env_prefix="MCPENGINE_",
         env_file=".env",
         extra="ignore",
     )
@@ -56,7 +50,7 @@ class Settings(BaseSettings, Generic[LifespanResultT]):
     )
 
     lifespan: (
-            Callable[["FastMCP"], AbstractAsyncContextManager[LifespanResultT]] | None
+            Callable[["MCPEngine"], AbstractAsyncContextManager[LifespanResultT]] | None
     ) = Field(None, description="Lifespan context manager")
 
     # auth settings

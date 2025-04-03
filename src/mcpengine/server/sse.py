@@ -45,12 +45,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
-<<<<<<< HEAD:src/mcp/server/sse.py
-import mcp.types as types
-from mcp.server.auth.backend import AuthenticationBackend
-=======
 import mcpengine.types as types
->>>>>>> origin/main:src/mcpengine/server/sse.py
+from mcpengine.server.auth.backend import AuthenticationBackend
 
 logger = logging.getLogger(__name__)
 

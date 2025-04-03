@@ -25,6 +25,7 @@ from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
 from starlette.routing import Mount, Route
 
+from mcpengine.server.auth.backend import get_auth_backend, OAUTH_WELL_KNOWN_PATH, OPENID_WELL_KNOWN_PATH
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
 from mcpengine.server.lowlevel.server import Server as MCPServer
@@ -40,6 +41,7 @@ from mcpengine.server.mcpengine.tools import ToolManager
 from mcpengine.server.mcpengine.utilities.logging import configure_logging, get_logger
 from mcpengine.server.mcpengine.utilities.types import Image
 from mcpengine.server.session import ServerSession, ServerSessionT
+from mcpengine.server.settings import Settings
 from mcpengine.server.sse import SseServerTransport
 from mcpengine.server.stdio import stdio_server
 from mcpengine.shared.context import LifespanContextT, RequestContext
@@ -59,51 +61,9 @@ from mcpengine.types import Tool as MCPTool
 logger = get_logger(__name__)
 
 
-class Settings(BaseSettings, Generic[LifespanResultT]):
-    """MCPEngine server settings.
-
-    All settings can be configured via environment variables with the prefix MCPENGINE_.
-    For example, MCPENGINE_DEBUG=true will set debug=True.
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="MCPENGINE_",
-        env_file=".env",
-        extra="ignore",
-    )
-
-    # Server settings
-    debug: bool = False
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-
-    # HTTP settings
-    host: str = "0.0.0.0"
-    port: int = 8000
-    sse_path: str = "/sse"
-    message_path: str = "/messages/"
-
-    # resource settings
-    warn_on_duplicate_resources: bool = True
-
-    # tool settings
-    warn_on_duplicate_tools: bool = True
-
-    # prompt settings
-    warn_on_duplicate_prompts: bool = True
-
-    dependencies: list[str] = Field(
-        default_factory=list,
-        description="List of dependencies to install in the server environment",
-    )
-
-    lifespan: (
-        Callable[[MCPEngine], AbstractAsyncContextManager[LifespanResultT]] | None
-    ) = Field(None, description="Lifespan context manager")
-
-
 def lifespan_wrapper(
-    app: MCPEngine,
-    lifespan: Callable[[MCPEngine], AbstractAsyncContextManager[LifespanResultT]],
+        app: MCPEngine,
+        lifespan: Callable[[MCPEngine], AbstractAsyncContextManager[LifespanResultT]],
 ) -> Callable[[MCPServer[LifespanResultT]], AbstractAsyncContextManager[object]]:
     @asynccontextmanager
     async def wrap(s: MCPServer[LifespanResultT]) -> AsyncIterator[object]:
@@ -536,7 +496,7 @@ class MCPEngine:
         async def handle_well_known(_: Request) -> Response:
             async with httpx.AsyncClient() as client:
                 issuer_url = str(self.settings.issuer_url).rstrip("/") + "/"
-                well_known_url = urljoin(issuer_url, OAUTH_WELL_KNOWN_PATH)
+                well_known_url = urljoin(issuer_url, OPENID_WELL_KNOWN_PATH)
                 response = await client.get(well_known_url)
                 return JSONResponse(response.json())
 
@@ -651,11 +611,11 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
     _mcpengine: MCPEngine | None
 
     def __init__(
-        self,
-        *,
-        request_context: RequestContext[ServerSessionT, LifespanContextT] | None = None,
-        mcpengine: MCPEngine | None = None,
-        **kwargs: Any,
+            self,
+            *,
+            request_context: RequestContext[ServerSessionT, LifespanContextT] | None = None,
+            mcpengine: MCPEngine | None = None,
+            **kwargs: Any,
     ):
         super().__init__(**kwargs)
         self._request_context = request_context
@@ -708,7 +668,7 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
             The resource content as either text or bytes
         """
         assert (
-            self._mcpengine is not None
+                self._mcpengine is not None
         ), "Context is not available outside of a request"
         return await self._mcpengine.read_resource(uri)
 

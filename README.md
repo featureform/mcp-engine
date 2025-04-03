@@ -1,8 +1,8 @@
-# MCP Python SDK
+# MCPEngine
 
 <div align="center">
 
-<strong>Python implementation of the Model Context Protocol (MCP)</strong>
+<strong>Enterprise-Ready Implementation of the Model Context Protocol (MCP)</strong>
 
 [![PyPI][pypi-badge]][pypi-url]
 [![MIT licensed][mit-badge]][mit-url]
@@ -16,8 +16,9 @@
 <!-- omit in toc -->
 ## Table of Contents
 
-- [MCP Python SDK](#mcp-python-sdk)
+- [MCPEngine](#mcpengine)
   - [Overview](#overview)
+  - [Why MCPEngine?](#why-mcpengine)
   - [Installation](#installation)
     - [Adding MCP to your python project](#adding-mcp-to-your-python-project)
     - [Running the standalone MCP development tools](#running-the-standalone-mcp-development-tools)
@@ -50,7 +51,7 @@
 [pypi-badge]: https://img.shields.io/pypi/v/mcp.svg
 [pypi-url]: https://pypi.org/project/mcp/
 [mit-badge]: https://img.shields.io/pypi/l/mcp.svg
-[mit-url]: https://github.com/modelcontextprotocol/python-sdk/blob/main/LICENSE
+[mit-url]: https://github.com/featureform/mcp-engine/blob/main/LICENSE
 [python-badge]: https://img.shields.io/pypi/pyversions/mcp.svg
 [python-url]: https://www.python.org/downloads/
 [docs-badge]: https://img.shields.io/badge/docs-modelcontextprotocol.io-blue.svg
@@ -58,16 +59,24 @@
 [spec-badge]: https://img.shields.io/badge/spec-spec.modelcontextprotocol.io-blue.svg
 [spec-url]: https://spec.modelcontextprotocol.io
 [discussions-badge]: https://img.shields.io/github/discussions/modelcontextprotocol/python-sdk
-[discussions-url]: https://github.com/modelcontextprotocol/python-sdk/discussions
+[discussions-url]: https://github.com/featureform/mcp-engine/discussions
 
 ## Overview
 
-The Model Context Protocol allows applications to provide context for LLMs in a standardized way, separating the concerns of providing context from the actual LLM interaction. This Python SDK implements the full MCP specification, making it easy to:
+The Model Context Protocol allows applications to provide context for LLMs in a standardized way, separating the concerns of providing context from the actual LLM interaction. MCPEngine is a backwards compatible extension of the MCP Python SDK that brings enterprise-grade security and an HTTP-first approach to building MCP servers. This SDK makes it simple to:
 
-- Build MCP clients that can connect to any MCP server
-- Create MCP servers that expose resources, prompts and tools
-- Use standard transports like stdio and SSE
-- Handle all MCP protocol messages and lifecycle events
+- Create servers that are auth aware
+- Designate specific server features (e.g. tools, resources, and/or prompts) as requiring auth and specific scopes(s)
+- Leverage IdPs that support OAuth and authenticate the users of MCP clients
+- Proxy stdio to SSE to allow Hosts to connect to remote MCP servers
+
+## Why MCPEngine?
+
+Why the original MCP specification shows the promise of connecting LLMs to a standardized ecosystem of tools and resources, its lack of enterprise-ready and cloud-based capabilities threatens to hold it back. Without authentication and HTTP standards, the spec cannot meet the demands of the modern web and the rapidly growing AI landscape. MCPEngine hopes to backfill these gaps and empower AI builders to pursue the spirit of MCP, but offering two new features to the original Python SDK:
+
+- **MCPEngine-Proxy** — a lightweight Go-based proxy that bridges the gap between MCP’s stdio and HTTP-SSE transports. It introduces proper authentication via OAuth in a way that is custom but compliant with spec. When an LLM like Claude hits a protected resource, we return a standard HTTP `401 Unauthorized` and initiate a familiar OAuth flow. Claude (or any other hosts) simply prints a login link. The proxy handles the rest transparently without requiring any custom logic from hosts like Claude for Desktop.
+
+- **MCPEngine** — a fully-featured, backward-compatible MCP server framework. It extends the official MCP SDK by embedding authentication and authorization natively, allowing you to expose secure MCP-compatible endpoints without resorting to hacks, workarounds, or local-only implementations.
 
 ## Installation
 
@@ -80,6 +89,7 @@ uv add "mcpengine[cli]"
 ```
 
 Alternatively, for projects using pip for dependencies:
+
 ```bash
 pip install "mcpengine[cli]"
 ```
@@ -119,14 +129,48 @@ def get_greeting(name: str) -> str:
 ```
 
 You can install this server in [Claude Desktop](https://claude.ai/download) and interact with it right away by running:
+
 ```bash
 mcpengine install server.py
 ```
 
 Alternatively, you can test it with the MCP Inspector:
+
 ```bash
 mcpengine dev server.py
 ```
+
+Now let's add authentication to our simply MCP server so that only authentication users can call our tool:
+
+```python
+# server.py
+from mcpengine import MCPEngine
+
+# Create an MCP server
+mcp = MCPEngine(
+    "Demo"
+    authentication_enabled=True,
+    issuer_url="http://localhost:8080/realms/testing",
+)
+
+
+@mcp.auth(scopes=["tool:use"])
+@mcp.tool()
+def add(a: int, b: int) -> int:
+    """Add two numbers"""
+    return a + b
+
+
+# Add a dynamic greeting resource
+@mcp.resource("greeting://{name}")
+def get_greeting(name: str) -> str:
+    """Get a personalized greeting"""
+    return f"Hello, {name}!"
+```
+
+In this example, we have an instance of [Keycloak](https://www.keycloak.org/guides) running on Docker that serves as our identity provider (IdP), which `issuer_url` points to. We've designated `add` as a tool that requires the correct authorization (i.e. the scope `"tool:use"`) to call.
+
+We can assume a properly configured instance of MCPEngine Proxy is running on the client to facilitate authentication and communication between STDIO and SSE.
 
 ## What is MCP?
 
@@ -307,13 +351,13 @@ async def long_task(files: list[str], ctx: Context) -> str:
 The fastest way to test and debug your server is with the MCP Inspector:
 
 ```bash
-mcp dev server.py
+mcpengine dev server.py
 
 # Add dependencies
-mcp dev server.py --with pandas --with numpy
+mcpengine dev server.py --with pandas --with numpy
 
 # Mount local code
-mcp dev server.py --with-editable .
+mcpengine dev server.py --with-editable .
 ```
 
 ### Claude Desktop Integration
@@ -321,14 +365,14 @@ mcp dev server.py --with-editable .
 Once your server is ready, install it in Claude Desktop:
 
 ```bash
-mcp install server.py
+mcpengine install server.py
 
 # Custom name
-mcp install server.py --name "My Analytics Server"
+mcpengine install server.py --name "My Analytics Server"
 
 # Environment variables
-mcp install server.py -v API_KEY=abc123 -v DB_URL=postgres://...
-mcp install server.py -f .env
+mcpengine install server.py -v API_KEY=abc123 -v DB_URL=postgres://...
+mcpengine install server.py -f .env
 ```
 
 ### Direct Execution
@@ -345,10 +389,11 @@ if __name__ == "__main__":
 ```
 
 Run it with:
+
 ```bash
 python server.py
 # or
-mcp run server.py
+mcpengine run server.py
 ```
 
 ### Mounting to an Existing ASGI Server
@@ -477,6 +522,7 @@ async def query_db(name: str, arguments: dict) -> list:
 ```
 
 The lifespan API provides:
+
 - A way to initialize resources when the server starts and clean them up when it stops
 - Access to initialized resources through the request context in handlers
 - Type-safe context passing between lifespan and request handlers

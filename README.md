@@ -2,7 +2,7 @@
 
 **Production-Grade Implementation of the Model Context Protocol (MCP)**
 
-<img src="assets/logo.png" alt="MCPEngine Logo" width="100%">
+<img src="assets/logo.png" alt="MCPEngine Logo" width="400">
 
 ## Overview
 
@@ -199,7 +199,7 @@ def echo_tool(msg: str):
 
 ## Smack - Message Storage Example
 
-<img src="assets/mcpengine-smack-demo.gif" alt="MCPEngine Smack Demo" width="400">
+<img src="assets/mcpengine-smack-demo.gif" alt="MCPEngine Smack Demo" width="100%">
 
 Smack is a simple messaging service example with PostgreSQL storage that demonstrates MCPEngine's capabilities with OAuth 2.1 authentication.
 

@@ -177,7 +177,10 @@ class BearerTokenBackend(AuthenticationBackend):
                 if scheme.lower() != "bearer":
                     raise AuthenticationError(f'Invalid auth schema "{scheme}", must be Bearer')
                 decoded_token = validate_token(jwks_keys, token)
-                scopes = set(decoded_token["scope"].split(" "))
+
+                scopes = decoded_token.get("scope", set())
+                if scopes != "":
+                    scopes = set(scopes.split(" "))
 
                 needed_scopes = self.scopes_mapping.get(message.params["name"], set())
                 if needed_scopes.difference(scopes):

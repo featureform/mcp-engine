@@ -652,7 +652,7 @@ name = "mcp-smack"
 version = "0.1.0"
 source = { editable = "examples/servers/smack" }
 dependencies = [
-    { name = "mcp" },
+    { name = "mcpengine" },
     { name = "psycopg2-binary" },
 ]
 
@@ -665,7 +665,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mcp" },
+    { name = "mcpengine", editable = "." },
     { name = "psycopg2-binary", specifier = "==2.9.9" },
 ]
 

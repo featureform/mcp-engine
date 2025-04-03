@@ -1,111 +1,136 @@
-# SMACK - Message Storage Service
+# Smack - Message Storage Service
 
-SMACK is a simple messaging service with a persistent message store using PostgreSQL. It's designed to work with the Model Context Protocol (MCP) Inspector for easy testing and interaction.
+Smack is a simple messaging service built on MCPEngine, demonstrating how to securely store and retrieve messages using PostgreSQL in a production-grade MCP environment.
 
 ## Overview
 
-SMACK is built on the MCP Engine, a secure implementation of the Model Context Protocol (MCP) with authentication support. While MCP standardizes interactions between AI models and external systems, early implementations lacked key features for security, scalability, and reliability. MCP Engine addresses these by integrating OAuth 2.1, ensuring secure and seamless communication.
+Smack shows how MCPEngine integrates OAuth 2.1 authentication and persistent storage to create a secure, scalable, and reliable messaging service. It highlights the importance of robust authentication in LLM workflows and how MCP can be extended beyond local toy demos.
 
-SMACK serves as a practical demonstration of the MCP Engine's capabilities by providing a basic yet functional messaging service. It highlights the importance of authentication and provides a hands-on experience with secure AI interactions.
-
-For a visual representation of the architecture and how SMACK integrates with the MCP Engine, please refer to the diagram below:
-
-<a href="https://spec.modelcontextprotocol.io/specification/2025-03-26/basic/authorization/" target="_blank">
-  <img src="https://cdn.prod.website-files.com/60cce6512b4ab924a0427124/67ec3d30ae1829e736099100_AD_4nXfpxfRMRgTM8glCYWi-YjhvxBvM3qAS73e58YRbCT8xtVnDwipEhT6NhLxssr5xH7jw-d6HoJByggT7QtOIsXYuG8MYbVtiV2aeNPiXDlIGjIF6zIKhaCrO4AdmGAUmuHLXgBzX.png" alt="MCP Authorization Flow" width="500">
-</a>
-
-This diagram illustrates the flow of data and the role of authentication in ensuring secure interactions within the SMACK service.
-
-We encourage you to explore SMACK to understand the critical role of authentication and scalability in MCP-based interactions and to experience firsthand the enhancements brought by the MCP Engine.
+> **Note:** For an overview of MCPEngine's architecture and why it matters, see the [MCPEngine repository](https://github.com/featureform/mcp-engine).
 
 ## Features
 
-- OAuth 2.1 authentication
-- Persistent message storage using PostgreSQL
-- Docker containerization for easy deployment
+* **OAuth 2.1 Authentication**: Securely authenticate users before they can list or post messages
+* **Persistent PostgreSQL Storage**: Messages are stored in a real database for reliability
+* **Docker Containerization**: Easily spin up Smack and its dependencies with Docker Compose
+* **Compatible with MCP Inspector & Claude Desktop**: Test locally or in production-like setups
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- MCP Inspector (for testing and interaction)
-- npx (optional)
+* Docker and Docker Compose
+* MCP Inspector (optional, for testing and interaction)
+* npx (optional, for running the MCP Inspector via npx)
 
 ## Quick Start
 
-### 1. Clone the repository and navigate to the examples/smack directory
+Clone this repository and navigate to examples/smack:
 
-### 2. Start the service using Docker Compose:
-   ```bash
-   docker-compose up --build
-   ```
-   This will:
-   - Build and start the SMACK server on port 8000
-   - Start a PostgreSQL instance on port 5432
-   - Create necessary volumes for data persistence
+```bash
+git clone https://github.com/featureform/mcp-engine.git
+cd mcp-engine/examples/smack
+```
 
-### 3. Connect to the service
-    You can use our proxy server to connect SMACK to your client.
-    Navigate to the proxy directory and build the main file:
+Start the service using Docker Compose:
 
-    ```bash
-    cd src/mcpengine/proxy
-    go build main.go
-    ```
+```bash
+docker-compose up --build
+```
 
-   There are multiple ways to interact with SMACK:
-   
-   #### a. Using the MCP Inspector
-   In a separate terminal run
+This will:
+* Build and start the Smack server on http://localhost:8000
+* Launch a PostgreSQL instance on port 5432
+* Create necessary volumes for data persistence
 
-   ```bash
-   npx @modelcontextprotocol/inspector ./main <server-url>
-   ```
-   In this case the server url is http://localhost:8000/sse.
+Connect to the service in one of two ways:
 
-   This will open the MCP inspector in your browser where you can list the tools and interact with the server.
-   
-   #### b. Using Claude Desktop
-   Create the config file if it doesn't exist:
+### a) MCPEngine Proxy (Local Approach)
 
-   ```bash
-   touch ~/Library/Application\ Support/Claude/claude_desktop_config.json
-   ```
-   Add the following to the file:
-   ```json
-    {
-        "mcpServers": {
-        "smack_mcp_server": {
-        "command": "path/to/repo/mcp_engine/src/mcp/proxy/main",
-        "args": [
-            "http://localhost:8000/sse"
-        ]
+If you already have Claude Desktop or another stdio-based LLM client, you can locally run:
+
+```bash
+mcpengine proxy http://localhost:8000/sse
+```
+
+The command spawns a local process that listens for stdio MCP requests and forwards them to http://localhost:8000/sse. The proxy also handles OAuth interactions if your Smack server is configured for authentication.
+
+### b) Using Docker Run in Claude Desktop
+
+Alternatively, you can run the MCPEngine-Proxy container in Docker and configure Claude Desktop to point to it. Create or edit your config file at:
+
+```bash
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+Add the following:
+
+```json
+{
+  "mcpServers": {
+    "smack_mcp_server": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-it",
+        "--rm",
+        "-p",
+        "8181:8181",
+        "featureformcom/mcpengine:latest",
+        "-host",
+        "localhost:8000",
+        "-sse_path",
+        "/sse",
+        "-debug=false",
+        "-client_id",
+        "your_client_id",
+        "-client_secret",
+        "your_client_secret"
+      ]
     }
-        }
-    }
-   ```
+  }
+}
+```
 
-   Save the file and restart Claude Desktop. You should now see the SMACK server in the list of available servers. 
-   You can now use Claude to send messages and list messages on SMACK.
+Claude Desktop sees a local stdio server, while Docker runs the MCPEngine-Proxy container. The proxy container listens on port 8181, connects to your Smack server at localhost:8000, and passes along OAuth credentials if required.
+
+Restart Claude Desktop, and you should see "smack_mcp_server" in the list of available servers.
 
 ## Available Tools
 
-### `list_messages()`
+### list_messages()
+
 Retrieves all posted messages from the database.
 
-**Response Format:**
+Response Example:
 ```
-1. sender: message content
-2. sender: message content
+1. Hello, world!
+2. Another message
 ...
 ```
 
-### `post_message(sender: str, message: str)`
+### post_message(message: str)
+
 Posts a new message to the database.
 
-**Parameters:**
-- `sender`: The sender of the message
-- `message`: The text content you want to post
+Parameters:
+* `message`: The textual content to post
 
-**Response:**
-- Success: "Message posted successfully: '{message}'"
-- Failure: Error message if the post failed
+Response:
+* Success: "Message posted successfully: '...'"
+* Failure: Returns an error message describing the issue
+
+
+
+## Why Smack?
+
+* **Security**: Demonstrates how OAuth 2.1 flows protect messaging endpoints
+* **Scalability**: Runs on Docker with PostgreSQL for data persistence
+* **Practical Example**: Illustrates how real-world services can adopt MCP (and MCPEngine) for secure AI-driven workflows
+
+## Further Reading
+
+* [MCPEngine Repository](https://github.com/featureform/mcp-engine)
+* [Official MCP Specification](https://modelcontextprotocol.io)
+
+## Questions or Feedback?
+
+Join our [Slack community](https://join.slack.com/t/featureform-community/shared_invite/zt-xhqp2m4i-JOCaN1vRN2NDXSVif10aQg?mc_cid=80bdc03b3b&mc_eid=UNIQID) or open an issue! We're excited to see what you build with Smack and MCPEngine.

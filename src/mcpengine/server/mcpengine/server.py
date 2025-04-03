@@ -218,7 +218,7 @@ class MCPEngine:
             raise ResourceError(str(e))
 
     def authorize(
-            self, scopes=Iterable[str] | None
+            self, scopes: Iterable[str] | None = None
     ) -> Callable[[AnyFunction], AnyFunction]:
         """Require authentication for this handler.
 

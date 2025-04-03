@@ -21,12 +21,13 @@ from starlette.authentication import (
     BaseUser,
     SimpleUser,
 )
+from starlette.requests import Request
 from starlette.responses import Response
 
 import mcpengine
 from mcpengine.server.auth.context import UserContext
 from mcpengine.server.mcpengine.utilities.logging import get_logger
-from mcpengine.types import JSONRPCMessage, Request
+from mcpengine.types import JSONRPCMessage
 
 logger = get_logger(__name__)
 
@@ -36,7 +37,7 @@ OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
 # TODO: Not Any
 def get_auth_backend(
-    settings: Any, scopes: set[str], scopes_mapping: dict[str, set(str)]
+    settings: Any, scopes: set[str], scopes_mapping: dict[str, set[str]]
 ) -> AuthenticationBackend:
     if not settings.authentication_enabled:
         return NoAuthBackend()
@@ -48,7 +49,7 @@ def get_auth_backend(
     )
 
 
-def validate_token(jwks: list, token: str) -> Any:
+def validate_token(jwks: list[dict[str,object]], token: str) -> Any:
     try:
         header = jwt.get_unverified_header(token)
     except Exception as e:
@@ -72,7 +73,7 @@ def validate_token(jwks: list, token: str) -> Any:
     # Prepare the public key for verification
     try:
         # Convert the JWK to a format PyJWT can use
-        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(rsa_key))
+        public_key = jwt.get_algorithm_by_name("RS256").from_jwk(json.dumps(rsa_key))
     except Exception as e:
         raise Exception(f"Error preparing public key: {str(e)}")
 
@@ -108,7 +109,7 @@ class AuthenticationBackend(Protocol):
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> AuthCredentials | BaseUser | None: ...
+    ) -> tuple[AuthCredentials, BaseUser] | None: ...
 
     def on_error(self, err: Exception) -> Response: ...
 
@@ -121,12 +122,12 @@ class NoAuthBackend(AuthenticationBackend):
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> AuthCredentials | BaseUser | None:
-        pass
+    ) -> tuple[AuthCredentials, BaseUser] | None:
+        return None
 
     def on_error(self, err: Exception) -> Response:
         # This should never be called, since we never raise an error.
-        pass
+        return Response(status_code=500, content="Unexpected error")
 
 
 class BearerTokenBackend(AuthenticationBackend):
@@ -160,12 +161,12 @@ class BearerTokenBackend(AuthenticationBackend):
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> AuthCredentials | BaseUser | None:
+    ) -> tuple[AuthCredentials, BaseUser] | None:
         if not isinstance(message.root, mcpengine.JSONRPCRequest):
-            pass
-        message = message.root
+            return None
+        req_message = message.root
 
-        if message.method not in self.METHODS_CHECK:
+        if req_message.method not in self.METHODS_CHECK:
             return None
 
         auth = request.headers.get("Authorization", None)
@@ -193,14 +194,21 @@ class BearerTokenBackend(AuthenticationBackend):
                 if scopes != "":
                     scopes = set(scopes.split(" "))
 
-                needed_scopes = self.scopes_mapping.get(message.params["name"], set())
+                needed_scopes: set[str] = set()
+                if req_message.params and "name" in req_message.params:
+                    needed_scopes = self.scopes_mapping.get(
+                        req_message.params["name"],
+                        set()
+                    )
                 if needed_scopes.difference(scopes):
                     raise AuthenticationError(
                         f"Invalid auth scopes, needed: {needed_scopes}, "
                         f"received: {scopes}"
                     )
 
-                message.params["user_context"] = UserContext(
+                if req_message.params is None:
+                    req_message.params = {}
+                req_message.params["user_context"] = UserContext(
                     name=decoded_token.get("name", None),
                     email=decoded_token.get("email", None),
                     sid=decoded_token.get("sid", None),

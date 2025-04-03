@@ -281,7 +281,7 @@ class TestServerResources:
             return "Hello, world!"
 
         resource = FunctionResource(
-            uri=AnyUrl("resource://test"), name="test", fn=get_text
+            uri=AnyUrl("resource://test"), name="test", fn=get_text,
         )
         mcp.add_resource(resource)
 

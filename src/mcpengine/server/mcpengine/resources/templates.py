@@ -26,8 +26,8 @@ class ResourceTemplate(BaseModel):
     )
     name: str = Field(description="Name of the resource")
     description: str | None = Field(description="Description of what the resource does")
-    scopes: list[str] | None = (
-        Field(None, description="List of scopes required for this resource"),
+    scopes: list[str] | None = Field(
+        None, description="List of scopes required for this resource"
     )
     mime_type: str = Field(
         default="text/plain", description="MIME type of the resource content"

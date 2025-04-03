@@ -3,12 +3,12 @@ from collections.abc import AsyncGenerator
 import anyio
 import pytest
 
-import mcp.types as types
-from mcp.client.session import ClientSession
-from mcp.server.lowlevel.server import Server
-from mcp.shared.exceptions import McpError
-from mcp.shared.memory import create_connected_server_and_client_session
-from mcp.types import (
+import mcpengine.types as types
+from mcpengine.client.session import ClientSession
+from mcpengine.server.lowlevel.server import Server
+from mcpengine.shared.exceptions import McpError
+from mcpengine.shared.memory import create_connected_server_and_client_session
+from mcpengine.types import (
     CancelledNotification,
     CancelledNotificationParams,
     ClientNotification,

@@ -1,7 +1,7 @@
 import anyio
 import click
-import mcp.types as types
-from mcp.server.lowlevel import Server
+import mcpengine.types as types
+from mcpengine.server.lowlevel import Server
 from pydantic import FileUrl
 
 SAMPLE_RESOURCES = {
@@ -44,7 +44,7 @@ def main(port: int, transport: str) -> int:
         return SAMPLE_RESOURCES[name]
 
     if transport == "sse":
-        from mcp.server.sse import SseServerTransport
+        from mcpengine.server.sse import SseServerTransport
         from starlette.applications import Starlette
         from starlette.routing import Mount, Route
 
@@ -70,7 +70,7 @@ def main(port: int, transport: str) -> int:
 
         uvicorn.run(starlette_app, host="0.0.0.0", port=port)
     else:
-        from mcp.server.stdio import stdio_server
+        from mcpengine.server.stdio import stdio_server
 
         async def arun():
             async with stdio_server() as streams:

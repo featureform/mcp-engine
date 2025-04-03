@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-from mcp.server.fastmcp import Context, FastMCP
+from mcpengine.server.mcpengine import Context, MCPEngine
 
 
 class Database:  # Replace with your actual DB type
@@ -18,7 +18,7 @@ class Database:  # Replace with your actual DB type
 
 
 # Create a named server
-mcp = FastMCP("My App")
+mcp = MCPEngine("My App")
 
 
 @dataclass
@@ -27,7 +27,7 @@ class AppContext:
 
 
 @asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
+async def app_lifespan(server: MCPEngine) -> AsyncIterator[AppContext]:
     """Manage application lifecycle with type-safe context"""
     # Initialize on startup
     db = await Database.connect()
@@ -39,7 +39,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 
 
 # Pass lifespan to server
-mcp = FastMCP("My App", lifespan=app_lifespan)
+mcp = MCPEngine("My App", lifespan=app_lifespan)
 
 
 # Access type-safe lifespan context in tools

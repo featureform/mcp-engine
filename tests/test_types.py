@@ -1,6 +1,6 @@
 import pytest
 
-from mcp.types import (
+from mcpengine.types import (
     LATEST_PROTOCOL_VERSION,
     ClientRequest,
     JSONRPCMessage,
@@ -17,7 +17,7 @@ async def test_jsonrpc_request():
         "params": {
             "protocolVersion": LATEST_PROTOCOL_VERSION,
             "capabilities": {"batch": None, "sampling": None},
-            "clientInfo": {"name": "mcp", "version": "0.1.0"},
+            "clientInfo": {"name": "mcpengine", "version": "0.1.0"},
         },
     }
 

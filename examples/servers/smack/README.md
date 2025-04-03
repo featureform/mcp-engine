@@ -48,7 +48,7 @@ We encourage you to explore SMACK to understand the critical role of authenticat
     Navigate to the proxy directory and build the main file:
 
     ```bash
-    cd src/mcp/proxy
+    cd src/mcpengine/proxy
     go build main.go
     ```
 

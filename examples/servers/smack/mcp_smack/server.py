@@ -2,7 +2,7 @@
 """
 Smack Messaging Server
 
-A FastMCP-based messaging service that provides 
+A MCPEngine-based messaging service that provides
 message listing and posting capabilities.
 """
 
@@ -11,8 +11,9 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-from mcp.server.fastmcp import Context, FastMCP
-from postgresDB import MessageDB
+from mcpengine import Context, MCPEngine
+
+from .db import MessageDB
 
 # Configure logging
 logging.basicConfig(
@@ -30,12 +31,12 @@ class AppContext:
 
 
 @asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
+async def app_lifespan(server: MCPEngine) -> AsyncIterator[AppContext]:
     """
     Manage application lifecycle with type-safe context.
 
     Args:
-        server: The FastMCP server instance
+        server: The MCPEngine server instance
 
     Yields:
         AppContext: The application context with initialized resources
@@ -55,7 +56,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
             logger.error(f"Error closing database connection: {e}")
 
 
-mcp = FastMCP("smack", lifespan=app_lifespan)
+mcp = MCPEngine("smack", lifespan=app_lifespan)
 
 
 @mcp.tool()
@@ -127,12 +128,34 @@ async def post_message(ctx: Context, sender: str, message: str) -> str:
         return "Failed to post message to database"
 
 
-if __name__ == "__main__":
+def main():
     try:
         logger.info("Starting Smack server")
+        logger.info("Connecting to database...")
+        # Test database connection before starting the server
+        db = MessageDB()
+        try:
+            # Test basic connection - will throw exception if connection fails
+            db._get_connection()
+            logger.info("Database connection established successfully")
+        except Exception as e:
+            logger.critical(f"Failed to establish database connection: {e}")
+            logger.critical(
+                "Please ensure the database is running and accessible. "
+                "Check your environment variables:"
+                "DATABASE_URL or DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD"
+            )
+            return 1
+        finally:
+            # Close the test connection
+            db.close_connection()
+
+        # Start the server
         mcp.run(transport="sse")
     except KeyboardInterrupt:
         logger.info("Server shutdown requested via KeyboardInterrupt")
     except Exception as e:
         logger.critical(f"Unhandled exception in server: {e}")
-        raise
+        return 1
+
+    return 0

@@ -26,4 +26,4 @@ ENV DB_HOST=postgres \
     DB_PORT=5432
 
 # Command to run the web server
-CMD ["python", "mcp_smack/server.py"]
+CMD ["python", "-m", "mcp_smack"]

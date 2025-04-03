@@ -1,0 +1,3 @@
+from mcpengine.types import LATEST_PROTOCOL_VERSION
+
+SUPPORTED_PROTOCOL_VERSIONS: tuple[int, str] = (1, LATEST_PROTOCOL_VERSION)

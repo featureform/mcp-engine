@@ -1,13 +1,12 @@
 import pytest
 
-from mcp import types
-from mcp.server.fastmcp import FastMCP
+from mcpengine import MCPEngine, types
 
 
 @pytest.mark.anyio
 async def test_resource_templates():
     # Create an MCP server
-    mcp = FastMCP("Demo")
+    mcp = MCPEngine("Demo")
 
     # Add a dynamic greeting resource
     @mcp.resource("greeting://{name}")

@@ -1,11 +1,11 @@
 import pytest
 
-from mcp.client.session import ClientSession
-from mcp.shared.context import RequestContext
-from mcp.shared.memory import (
+from mcpengine.client.session import ClientSession
+from mcpengine.shared.context import RequestContext
+from mcpengine.shared.memory import (
     create_connected_server_and_client_session as create_session,
 )
-from mcp.types import (
+from mcpengine.types import (
     CreateMessageRequestParams,
     CreateMessageResult,
     SamplingMessage,
@@ -15,9 +15,9 @@ from mcp.types import (
 
 @pytest.mark.anyio
 async def test_sampling_callback():
-    from mcp.server.fastmcp import FastMCP
+    from mcpengine.server.mcpengine import MCPEngine
 
-    server = FastMCP("test")
+    server = MCPEngine("test")
 
     callback_return = CreateMessageResult(
         role="assistant",

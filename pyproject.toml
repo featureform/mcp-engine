@@ -46,6 +46,7 @@ mcpengine = "mcpengine.cli:app [cli]"
 [tool.uv]
 resolution = "lowest-direct"
 default-groups = ["dev", "docs"]
+package = true
 
 [dependency-groups]
 dev = [

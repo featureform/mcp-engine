@@ -102,7 +102,7 @@ mcp = MCPEngine(
 @mcp.auth(scopes=["calc:read"])
 @mcp.tool()
 def add(a: int, b: int, ctx: Context) -> int:
-    ctx.info(f"User {ctx.user.id} with roles {ctx.roles} called add.")
+    ctx.info(f"User {ctx.user_id} with roles {ctx.roles} called add.")
     return a + b
 ```
 
@@ -153,7 +153,8 @@ def thumbnail(path: str) -> Image:
 
 Each request has a Context:
 
-- `ctx.user`: Authenticated user info
+- `ctx.user_id`: Authenticated user id
+- `ctx.user_name`: Authenticated user name
 - `ctx.roles`: User scopes/roles
 - `ctx.info(...)`: Logging
 - `ctx.read_resource(...)`: Access other resources
@@ -214,6 +215,7 @@ docker-compose up --build
 
 Configure Claude Desktop to use Smack:
 
+Manually:
 ```bash
 touch ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
@@ -239,6 +241,11 @@ Add to the file:
         }
     }
 }
+```
+
+Via CLI:
+```bash
+mcpengine proxy http://localhost:8000
 ```
 
 Smack provides two main tools:

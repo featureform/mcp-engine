@@ -24,13 +24,14 @@ OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
 
 # TODO: Not Any
-def get_auth_backend(settings: Any, scopes: set[str]) -> AuthenticationBackend:
+def get_auth_backend(settings: Any, scopes: set[str], scopes_mapping: dict[str, set(str)]) -> AuthenticationBackend:
     if not settings.authentication_enabled:
         return NoAuthBackend()
 
     return BearerTokenBackend(
-        settings.issuer_url,
-        scopes,
+        issuer_url=settings.issuer_url,
+        scopes_mapping=scopes_mapping,
+        scopes=scopes,
     )
 
 

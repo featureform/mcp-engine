@@ -25,7 +25,7 @@ from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
 from starlette.routing import Mount, Route
 
-from mcp.server.auth.backend import BearerTokenBackend, OAUTH_WELL_KNOWN_PATH, OPENID_WELL_KNOWN_PATH
+from mcp.server.auth.backend import OAUTH_WELL_KNOWN_PATH, OPENID_WELL_KNOWN_PATH, get_auth_backend
 from mcp.server.fastmcp.exceptions import ResourceError
 from mcp.server.fastmcp.prompts import Prompt, PromptManager
 from mcp.server.fastmcp.resources import FunctionResource, Resource, ResourceManager
@@ -473,7 +473,7 @@ class FastMCP:
 
     def sse_app(self) -> Starlette:
         """Return an instance of the SSE server app."""
-        auth_backend = BearerTokenBackend(self.settings.issuer_url, self.scopes, self.scopes_mapping)
+        auth_backend = get_auth_backend(self.settings, self.scopes, self.scopes_mapping)
 
         sse = SseServerTransport(self.settings.message_path, auth_backend)
 

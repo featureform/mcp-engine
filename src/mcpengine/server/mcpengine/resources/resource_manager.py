@@ -1,3 +1,8 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 """Resource manager functionality."""
 
 from collections.abc import Callable

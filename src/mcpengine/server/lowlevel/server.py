@@ -1,3 +1,8 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 """
 MCP Server Module
 
@@ -81,7 +86,6 @@ import mcpengine.types as types
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.models import InitializationOptions
 from mcpengine.server.session import ServerSession
-from mcpengine.server.stdio import stdio_server as stdio_server
 from mcpengine.shared.context import RequestContext
 from mcpengine.shared.exceptions import McpError
 from mcpengine.shared.session import RequestResponder

@@ -1,3 +1,8 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 """MCPEngine - A more ergonomic interface for MCP servers."""
 
 from __future__ import annotations as _annotations

@@ -10,13 +10,12 @@ import jwt
 from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
 from pydantic.networks import HttpUrl
 from starlette.authentication import AuthenticationError, AuthCredentials, BaseUser, SimpleUser
-from starlette.datastructures import Headers
-from starlette.middleware import Middleware
-from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.requests import HTTPConnection
 from starlette.responses import Response
 
+import mcp
+from mcp.server.auth.context import UserContext
 from mcp.server.fastmcp.utilities.logging import get_logger
+from mcp.types import Request, JSONRPCMessage
 
 logger = get_logger(__name__)
 
@@ -33,17 +32,6 @@ def get_auth_backend(settings: Any, scopes: set[str]) -> AuthenticationBackend:
         settings.issuer_url,
         scopes,
     )
-
-
-def on_error(scopes: list[str]) -> Any:
-    def wrapped(_: HTTPConnection, err: AuthenticationError) -> Response:
-        return Response(
-            status_code=401,
-            content=str(err),
-            headers={"WWW-Authenticate": f"Bearer scope=\"{' '.join(scopes)}\""},
-        )
-
-    return wrapped
 
 
 def validate_token(jwks: list, token: str) -> Any:
@@ -83,7 +71,6 @@ def validate_token(jwks: list, token: str) -> Any:
             options={
                 "verify_signature": True,
                 "verify_exp": True,
-                # TODO: Re-enable once we figure out how to handle this.
                 "verify_aud": False,
                 "verify_iat": True,
                 "verify_iss": True,
@@ -103,7 +90,14 @@ def validate_token(jwks: list, token: str) -> Any:
 
 
 class AuthenticationBackend(Protocol):
-    async def authenticate(self, method: str, headers: Headers):
+    async def authenticate(
+            self,
+            request: Request,
+            message: JSONRPCMessage,
+    ) -> Optional[Tuple[AuthCredentials, BaseUser]]:
+        ...
+
+    def on_error(self, err: Exception) -> Response:
         ...
 
 
@@ -111,25 +105,39 @@ class NoAuthBackend(AuthenticationBackend):
     def __init__(self):
         pass
 
-    async def authenticate(self, _method: str, _headers: Headers):
+    async def authenticate(
+            self,
+            request: Request,
+            message: JSONRPCMessage,
+    ) -> Optional[Tuple[AuthCredentials, BaseUser]]:
+        pass
+
+    def on_error(self, err: Exception) -> Response:
+        # This should never be called, since we never raise an error.
         pass
 
 
-class BearerTokenBackend:
-    METHODS_SKIP: set[str] = {
-        "initialize",
-        "notifications/initialized",
-        "tools/list",
-        "resources/list",
-        "prompts/list",
+class BearerTokenBackend(AuthenticationBackend):
+    # TODO: Better way of doing this
+    METHODS_CHECK: set[str] = {
+        "tools/call",
+        "resources/read",
+        "prompts/get",
     }
 
     issuer_url: HttpUrl
     application_scopes: set[str]
+    scopes_mapping: dict[str, set[str]]
 
-    def __init__(self, issuer_url: HttpUrl, scopes: set[str]):
+    def __init__(
+            self,
+            issuer_url: HttpUrl,
+            scopes: set[str],
+            scopes_mapping: dict[str, set[str]]
+    ) -> None:
         self.issuer_url = issuer_url
         self.application_scopes = scopes
+        self.scopes_mapping = scopes_mapping
 
     def on_error(self, err: Exception) -> Response:
         return Response(
@@ -138,16 +146,19 @@ class BearerTokenBackend:
             headers={"WWW-Authenticate": f"Bearer scope=\"{' '.join(self.application_scopes)}\""},
         )
 
-    def as_middleware(self) -> Middleware:
-        return Middleware(AuthenticationMiddleware, backend=self, on_error=on_error(self.application_scopes))
-
     async def authenticate(
-            self, method: str, headers: Headers
+            self,
+            request: Request,
+            message: JSONRPCMessage,
     ) -> Optional[Tuple[AuthCredentials, BaseUser]]:
-        if method in self.METHODS_SKIP:
+        if not isinstance(message.root, mcp.JSONRPCRequest):
+            pass
+        message = message.root
+
+        if message.method not in self.METHODS_CHECK:
             return None
 
-        auth = headers.get("Authorization", None)
+        auth = request.headers.get("Authorization", None)
         if auth is None:
             raise AuthenticationError('No valid auth header')
 
@@ -165,11 +176,22 @@ class BearerTokenBackend:
                 if scheme.lower() != "bearer":
                     raise AuthenticationError(f'Invalid auth schema "{scheme}", must be Bearer')
                 decoded_token = validate_token(jwks_keys, token)
-                scopes = decoded_token["scope"].split(" ")
+                scopes = set(decoded_token["scope"].split(" "))
+
+                needed_scopes = self.scopes_mapping.get(message.params["name"], set())
+                if needed_scopes.difference(scopes):
+                    raise AuthenticationError(f'Invalid auth scopes, needed: {needed_scopes}, received: {scopes}')
+
+                message.params["user_context"] = UserContext(
+                    name=decoded_token.get("name", None),
+                    email=decoded_token.get("email", None),
+                    sid=decoded_token.get("sid", None),
+                )
+
                 sub = decoded_token["sub"]
                 return (
-                    AuthCredentials(scopes),
+                    AuthCredentials(list(scopes)),
                     SimpleUser(sub),
                 )
             except Exception as err:
-                raise AuthenticationError("Invalid bearer auth credentials") from err
+                raise AuthenticationError("Invalid credentials") from err

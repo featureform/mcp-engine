@@ -95,6 +95,8 @@ class FastMCP:
 
         # The set of required scopes.
         self.scopes = set()
+        # The mapping of function to scopes required for it.
+        self.scopes_mapping: dict[str, set[str]] = {}
 
         # Set up MCP protocol handlers
         self._setup_handlers()
@@ -206,7 +208,7 @@ class FastMCP:
             logger.error(f"Error reading resource {uri}: {e}")
             raise ResourceError(str(e))
 
-    def add_application_scopes(self, scopes: list[str] | None) -> None:
+    def add_application_scopes(self, handler_name: str, scopes: list[str] | None) -> None:
         """Add scopes to the list of all scopes required by the application.
 
         When we redirect the user to login, we pass all the scopes required by the application.
@@ -218,6 +220,7 @@ class FastMCP:
         """
         if scopes is None:
             return
+        self.scopes_mapping[handler_name] = set(scopes)
         self.scopes.update(scopes)
 
     def add_tool(
@@ -278,7 +281,7 @@ class FastMCP:
 
         def decorator(fn: AnyFunction) -> AnyFunction:
             self.add_tool(fn, name=name, description=description, scopes=scopes)
-            self.add_application_scopes(scopes)
+            self.add_application_scopes(fn.__name__, scopes)
             return fn
 
         return decorator
@@ -380,8 +383,7 @@ class FastMCP:
                     fn=fn,
                 )
                 self.add_resource(resource)
-
-            self.add_application_scopes(scopes)
+                self.add_application_scopes(name, scopes)
 
             return fn
 
@@ -442,7 +444,7 @@ class FastMCP:
         def decorator(func: AnyFunction) -> AnyFunction:
             prompt = Prompt.from_function(func, name=name, description=description, scopes=scopes)
             self.add_prompt(prompt)
-            self.add_application_scopes(scopes)
+            self.add_application_scopes(func.__name__, scopes)
             return func
 
         return decorator
@@ -471,7 +473,7 @@ class FastMCP:
 
     def sse_app(self) -> Starlette:
         """Return an instance of the SSE server app."""
-        auth_backend = BearerTokenBackend(self.settings.issuer_url, self.scopes)
+        auth_backend = BearerTokenBackend(self.settings.issuer_url, self.scopes, self.scopes_mapping)
 
         sse = SseServerTransport(self.settings.message_path, auth_backend)
 
@@ -698,6 +700,14 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
     def request_id(self) -> str:
         """Get the unique ID for this request."""
         return str(self.request_context.request_id)
+
+    @property
+    def user_id(self) -> str:
+        return str(self.request_context.user_id)
+
+    @property
+    def user_name(self) -> str:
+        return str(self.request_context.user_name)
 
     @property
     def session(self):

@@ -537,18 +537,25 @@ class Server(Generic[LifespanResultT]):
 
             token = None
             try:
+                user_context = req.params.user_context
+            except Exception:
+                user_context = {}
+
+            try:
                 # Set our global state that can be retrieved via
                 # app.get_request_context()
                 token = request_ctx.set(
                     RequestContext(
-                        message.request_id,
-                        message.request_meta,
-                        session,
-                        lifespan_context,
+                        request_id=message.request_id,
+                        meta=message.request_meta,
+                        session=session,
+                        lifespan_context=lifespan_context,
+                        user_id=user_context.get("sid"),
+                        user_name=user_context.get("name"),
                     )
                 )
                 response = await handler(req)
-            except (AuthorizationException, McpError) as err:
+            except McpError as err:
                 response = err.error
             except Exception as err:
                 if raise_exceptions:

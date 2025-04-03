@@ -46,7 +46,7 @@ from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
 import mcp.types as types
-from mcp.server.auth.backend import BearerTokenBackend, AuthenticationBackend
+from mcp.server.auth.backend import AuthenticationBackend
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +67,7 @@ class SseServerTransport:
     _read_stream_writers: dict[
         UUID, MemoryObjectSendStream[types.JSONRPCMessage | Exception]
     ]
-    # TODO: Make this generic over backends.
-    _auth_backend: BearerTokenBackend | None
+    _auth_backend: AuthenticationBackend | None
 
     def __init__(self, endpoint: str, auth_backend: AuthenticationBackend | None = None) -> None:
         """
@@ -173,7 +172,13 @@ class SseServerTransport:
             await writer.send(err)
             return
 
-        await self._auth_backend.authenticate(message.root.method, request.headers)
+        try:
+            await self._auth_backend.authenticate(request, message)
+        except Exception as e:
+            logger.error(f"Failed to authenticate: {e}")
+            response = self._auth_backend.on_error(e)
+            await response(scope, receive, send)
+            return
 
         logger.debug(f"Sending message to writer: {message}")
         response = Response("Accepted", status_code=202)

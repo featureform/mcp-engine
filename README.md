@@ -36,6 +36,7 @@ MCPEngine uses a proxy-based architecture to integrate with LLM hosts like Claud
 ```
 
 This architecture provides several advantages:
+
 1. **Seamless integration** - Claude sees a local stdio-based process
 2. **Security** - The proxy handles OAuth authentication flows
 3. **Scalability** - The MCPEngine server can run anywhere (cloud, on-prem)
@@ -65,9 +66,11 @@ from mcpengine import MCPEngine
 
 mcp = MCPEngine("Demo")
 
+
 @mcp.tool()
 def add(a: int, b: int) -> int:
     return a + b
+
 
 @mcp.resource("greeting://{name}")
 def get_greeting(name: str) -> str:
@@ -76,7 +79,7 @@ def get_greeting(name: str) -> str:
 
 ### Claude Desktop Integration
 
-If your server is at http://localhost:8000, you can start the proxy locally:
+If your server is at <http://localhost:8000>, you can start the proxy locally:
 
 ```bash
 mcpengine proxy http://localhost:8000/sse
@@ -99,6 +102,7 @@ mcp = MCPEngine(
     issuer_url="https://your-idp.example.com/realms/some-realm",
 )
 
+
 @mcp.auth(scopes=["calc:read"])
 @mcp.tool()
 def add(a: int, b: int, ctx: Context) -> int:
@@ -113,8 +117,13 @@ Any attempt to call `add` requires the user to have `calc:read` scope. Without i
 `@mcp.resource("uri")`: Provide read-only context for LLMs, like a GET endpoint.
 
 ```python
+from mcpengine import MCPEngine
+
+mcp = MCPEngine("Demo")
+
+
 @mcp.resource("config://app")
-def get_config():
+def get_config() -> str:
     return "Configuration Data"
 ```
 
@@ -123,6 +132,11 @@ def get_config():
 `@mcp.tool()`: LLM-invokable functions. They can have side effects or perform computations.
 
 ```python
+from mcpengine import MCPEngine
+
+mcp = MCPEngine("Demo")
+
+
 @mcp.tool()
 def send_email(to: str, body: str):
     return "Email Sent!"
@@ -133,6 +147,11 @@ def send_email(to: str, body: str):
 `@mcp.prompt()`: Reusable conversation templates.
 
 ```python
+from mcpengine import MCPEngine
+
+mcp = MCPEngine("Demo")
+
+
 @mcp.prompt()
 def debug_prompt(error_msg: str):
     return f"Debug: {error_msg}"
@@ -143,10 +162,15 @@ def debug_prompt(error_msg: str):
 Return images as first-class data:
 
 ```python
-from mcpengine import Image
+from mcpengine import MCPEngine, Image
+
+mcp = MCPEngine("Demo")
+
+
 @mcp.tool()
 def thumbnail(path: str) -> Image:
-    ...
+    # ... function body omitted
+    pass
 ```
 
 ### Context
@@ -173,6 +197,7 @@ mcp = MCPEngine(
     issuer_url="https://your-idp.example.com/realms/some-realm",
 )
 
+
 @mcp.auth(scopes=["database:read"])
 @mcp.tool()
 def query_db(sql: str, ctx: Context) -> str:
@@ -188,9 +213,15 @@ def query_db(sql: str, ctx: Context) -> str:
 ### Echo Server
 
 ```python
+from mcpengine import MCPEngine
+
+mcp = MCPEngine("Demo")
+
+
 @mcp.resource("echo://{msg}")
 def echo_resource(msg: str):
     return f"Resource echo: {msg}"
+
 
 @mcp.tool()
 def echo_tool(msg: str):
@@ -218,6 +249,7 @@ docker-compose up --build
 Configure Claude Desktop to use Smack:
 
 Manually:
+
 ```bash
 touch ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
@@ -238,11 +270,13 @@ Add to the file:
 ```
 
 Via CLI:
+
 ```bash
 mcpengine proxy http://localhost:8000
 ```
 
 Smack provides two main tools:
+
 - `list_messages()`: Retrieves all messages
 - `post_message(message: str)`: Posts a new message
 

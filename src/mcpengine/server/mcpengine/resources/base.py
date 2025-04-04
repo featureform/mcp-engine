@@ -33,7 +33,7 @@ class Resource(BaseModel, abc.ABC):
         description="Description of the resource", default=None
     )
     scopes: list[str] | None = Field(
-        None, description="List of scopes required for this resource"
+        description="List of scopes required for this resource", default=None
     )
     mime_type: str = Field(
         default="text/plain",

@@ -545,7 +545,7 @@ class Server(Generic[LifespanResultT]):
             try:
                 user_context = req.params.user_context
             except Exception:
-                user_context = {}
+                user_context: dict[str, str] = {}
 
             try:
                 # Set our global state that can be retrieved via

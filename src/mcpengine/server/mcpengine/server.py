@@ -27,6 +27,7 @@ import uvicorn
 from pydantic import BaseModel
 from pydantic.networks import AnyUrl
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Mount, Route
@@ -108,7 +109,7 @@ class MCPEngine:
         self.dependencies = self.settings.dependencies
 
         # The set of required scopes.
-        self.scopes = set()
+        self.scopes: set[str] = set()
         # The mapping of function to scopes required for it.
         self.scopes_mapping: dict[str, set[str]] = {}
 
@@ -239,7 +240,7 @@ class MCPEngine:
 
         def decorator(fn: AnyFunction) -> AnyFunction:
             nonlocal self, scopes
-            self.add_application_scopes(fn.__name__, scopes)
+            self.add_application_scopes(fn.__name__, list(scopes) if scopes else None)
             return fn
 
         return decorator
@@ -541,7 +542,7 @@ class MCPEngine:
                 response = await client.get(well_known_url)
                 return JSONResponse(response.json())
 
-        middleware = []
+        middleware: Sequence[Middleware] = []
 
         routes = [
             Route(

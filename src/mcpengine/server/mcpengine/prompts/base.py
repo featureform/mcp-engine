@@ -78,8 +78,8 @@ class Prompt(BaseModel):
     description: str | None = Field(
         None, description="Description of what the prompt does"
     )
-    scopes: list[str] | None = (
-        Field(None, description="List of scopes required for this prompt"),
+    scopes: list[str] | None = Field(
+        None, description="List of scopes required for this prompt"
     )
     arguments: list[PromptArgument] | None = Field(
         None, description="Arguments that can be passed to the prompt"

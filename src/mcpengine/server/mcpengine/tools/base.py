@@ -30,8 +30,8 @@ class Tool(BaseModel):
     fn: Callable[..., Any] = Field(exclude=True)
     name: str = Field(description="Name of the tool")
     description: str = Field(description="Description of what the tool does")
-    scopes: list[str] | None = (
-        Field(None, description="List of scopes required for this tool"),
+    scopes: list[str] | None = Field(
+        None, description="List of scopes required for this tool"
     )
     parameters: dict[str, Any] = Field(description="JSON schema for tool parameters")
     fn_metadata: FuncMetadata = Field(

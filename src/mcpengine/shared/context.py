@@ -24,3 +24,4 @@ class RequestContext(Generic[SessionT, LifespanContextT]):
     lifespan_context: LifespanContextT
     user_id: str | None = None
     user_name: str | None = None
+    token: str | None = None

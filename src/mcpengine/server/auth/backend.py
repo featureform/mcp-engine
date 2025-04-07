@@ -26,6 +26,7 @@ from starlette.responses import Response
 
 import mcpengine
 from mcpengine.server.auth.context import UserContext
+from mcpengine.server.auth.errors import AuthorizationError
 from mcpengine.server.mcpengine.utilities.logging import get_logger
 from mcpengine.types import JSONRPCMessage
 
@@ -37,7 +38,7 @@ OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
 # TODO: Not Any
 def get_auth_backend(
-    settings: Any, scopes: set[str], scopes_mapping: dict[str, set[str]]
+        settings: Any, scopes: set[str], scopes_mapping: dict[str, set[str]]
 ) -> AuthenticationBackend:
     if not settings.authentication_enabled:
         return NoAuthBackend()
@@ -49,7 +50,7 @@ def get_auth_backend(
     )
 
 
-def validate_token(jwks: list[dict[str,object]], token: str) -> Any:
+def validate_token(jwks: list[dict[str, object]], token: str) -> Any:
     try:
         header = jwt.get_unverified_header(token)
     except Exception as e:
@@ -106,9 +107,9 @@ def validate_token(jwks: list[dict[str,object]], token: str) -> Any:
 
 class AuthenticationBackend(Protocol):
     async def authenticate(
-        self,
-        request: Request,
-        message: JSONRPCMessage,
+            self,
+            request: Request,
+            message: JSONRPCMessage,
     ) -> tuple[AuthCredentials, BaseUser] | None: ...
 
     def on_error(self, err: Exception) -> Response: ...
@@ -119,9 +120,9 @@ class NoAuthBackend(AuthenticationBackend):
         pass
 
     async def authenticate(
-        self,
-        request: Request,
-        message: JSONRPCMessage,
+            self,
+            request: Request,
+            message: JSONRPCMessage,
     ) -> tuple[AuthCredentials, BaseUser] | None:
         return None
 
@@ -143,7 +144,7 @@ class BearerTokenBackend(AuthenticationBackend):
     scopes_mapping: dict[str, set[str]]
 
     def __init__(
-        self, issuer_url: HttpUrl, scopes: set[str], scopes_mapping: dict[str, set[str]]
+            self, issuer_url: HttpUrl, scopes: set[str], scopes_mapping: dict[str, set[str]]
     ) -> None:
         self.issuer_url = issuer_url
         self.application_scopes = scopes
@@ -151,16 +152,20 @@ class BearerTokenBackend(AuthenticationBackend):
 
     def on_error(self, err: Exception) -> Response:
         bearer = f'Bearer scope="{" ".join(self.application_scopes)}"'
+        if isinstance(err, AuthorizationError):
+            status_code = 403
+        else:
+            status_code = 401
         return Response(
-            status_code=401,
+            status_code=status_code,
             content=str(err),
             headers={"WWW-Authenticate": bearer},
         )
 
     async def authenticate(
-        self,
-        request: Request,
-        message: JSONRPCMessage,
+            self,
+            request: Request,
+            message: JSONRPCMessage,
     ) -> tuple[AuthCredentials, BaseUser] | None:
         if not isinstance(message.root, mcpengine.JSONRPCRequest):
             return None
@@ -173,6 +178,52 @@ class BearerTokenBackend(AuthenticationBackend):
         if auth is None:
             raise AuthenticationError("No valid auth header")
 
+        try:
+            jwks = await self.get_jwks()
+
+            scheme, token = auth.split()
+            if scheme.lower() != "bearer":
+                raise AuthenticationError(
+                    f'Invalid auth schema "{scheme}", must be Bearer'
+                )
+            decoded_token = validate_token(jwks, token)
+
+            scopes = decoded_token.get("scope", set())
+            if scopes != "":
+                scopes = set(scopes.split(" "))
+
+            needed_scopes: set[str] = set()
+            if req_message.params and "name" in req_message.params:
+                needed_scopes = self.scopes_mapping.get(
+                    req_message.params["name"],
+                    set()
+                )
+            if needed_scopes.difference(scopes):
+                raise AuthorizationError(
+                    f"Invalid auth scopes, needed: {needed_scopes}, "
+                    f"received: {scopes}"
+                )
+
+            if req_message.params is None:
+                req_message.params = {}
+            req_message.params["user_context"] = UserContext(
+                name=decoded_token.get("name", None),
+                email=decoded_token.get("email", None),
+                sid=decoded_token.get("sid", None),
+                token=token,
+            )
+
+            sub = decoded_token["sub"]
+            return (
+                AuthCredentials(list(scopes)),
+                SimpleUser(sub),
+            )
+        except (AuthenticationError, AuthorizationError) as e:
+            raise e
+        except Exception as err:
+            raise AuthenticationError("Invalid credentials") from err
+
+    async def get_jwks(self) -> Any:
         # TODO: Cache this stuff
         async with httpx.AsyncClient() as client:
             issuer_url = str(self.issuer_url).rstrip("/") + "/"
@@ -182,42 +233,5 @@ class BearerTokenBackend(AuthenticationBackend):
             jwks_url = response.json()["jwks_uri"]
             response = await client.get(jwks_url)
             jwks_keys = response.json()["keys"]
-            try:
-                scheme, token = auth.split()
-                if scheme.lower() != "bearer":
-                    raise AuthenticationError(
-                        f'Invalid auth schema "{scheme}", must be Bearer'
-                    )
-                decoded_token = validate_token(jwks_keys, token)
 
-                scopes = decoded_token.get("scope", set())
-                if scopes != "":
-                    scopes = set(scopes.split(" "))
-
-                needed_scopes: set[str] = set()
-                if req_message.params and "name" in req_message.params:
-                    needed_scopes = self.scopes_mapping.get(
-                        req_message.params["name"],
-                        set()
-                    )
-                if needed_scopes.difference(scopes):
-                    raise AuthenticationError(
-                        f"Invalid auth scopes, needed: {needed_scopes}, "
-                        f"received: {scopes}"
-                    )
-
-                if req_message.params is None:
-                    req_message.params = {}
-                req_message.params["user_context"] = UserContext(
-                    name=decoded_token.get("name", None),
-                    email=decoded_token.get("email", None),
-                    sid=decoded_token.get("sid", None),
-                )
-
-                sub = decoded_token["sub"]
-                return (
-                    AuthCredentials(list(scopes)),
-                    SimpleUser(sub),
-                )
-            except Exception as err:
-                raise AuthenticationError("Invalid credentials") from err
+            return jwks_keys

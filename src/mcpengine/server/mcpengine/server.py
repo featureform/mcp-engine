@@ -763,6 +763,10 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
         return str(self.request_context.user_name)
 
     @property
+    def token(self) -> str:
+        return self.request_context.token
+
+    @property
     def session(self):
         """Access to the underlying session for advanced usage."""
         return self.request_context.session

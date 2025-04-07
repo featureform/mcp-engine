@@ -11,3 +11,4 @@ class UserContext:
     name: str | None
     email: str | None
     sid: str | None
+    token: str | None

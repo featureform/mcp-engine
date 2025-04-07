@@ -181,9 +181,7 @@ class SseServerTransport:
             return
 
         if self._auth_backend:
-            logger.debug(
-                "authentication backend configured for SseServerTransport"
-            )
+            logger.debug("authentication backend configured for SseServerTransport")
             try:
                 await self._auth_backend.authenticate(request, message)
             except Exception as e:

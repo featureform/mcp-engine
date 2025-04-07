@@ -38,7 +38,7 @@ OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
 # TODO: Not Any
 def get_auth_backend(
-        settings: Any, scopes: set[str], scopes_mapping: dict[str, set[str]]
+    settings: Any, scopes: set[str], scopes_mapping: dict[str, set[str]]
 ) -> AuthenticationBackend:
     if not settings.authentication_enabled:
         return NoAuthBackend()
@@ -107,9 +107,9 @@ def validate_token(jwks: list[dict[str, object]], token: str) -> Any:
 
 class AuthenticationBackend(Protocol):
     async def authenticate(
-            self,
-            request: Request,
-            message: JSONRPCMessage,
+        self,
+        request: Request,
+        message: JSONRPCMessage,
     ) -> tuple[AuthCredentials, BaseUser] | None: ...
 
     def on_error(self, err: Exception) -> Response: ...
@@ -120,9 +120,9 @@ class NoAuthBackend(AuthenticationBackend):
         pass
 
     async def authenticate(
-            self,
-            request: Request,
-            message: JSONRPCMessage,
+        self,
+        request: Request,
+        message: JSONRPCMessage,
     ) -> tuple[AuthCredentials, BaseUser] | None:
         return None
 
@@ -144,7 +144,7 @@ class BearerTokenBackend(AuthenticationBackend):
     scopes_mapping: dict[str, set[str]]
 
     def __init__(
-            self, issuer_url: HttpUrl, scopes: set[str], scopes_mapping: dict[str, set[str]]
+        self, issuer_url: HttpUrl, scopes: set[str], scopes_mapping: dict[str, set[str]]
     ) -> None:
         self.issuer_url = issuer_url
         self.application_scopes = scopes
@@ -163,9 +163,9 @@ class BearerTokenBackend(AuthenticationBackend):
         )
 
     async def authenticate(
-            self,
-            request: Request,
-            message: JSONRPCMessage,
+        self,
+        request: Request,
+        message: JSONRPCMessage,
     ) -> tuple[AuthCredentials, BaseUser] | None:
         if not isinstance(message.root, mcpengine.JSONRPCRequest):
             return None
@@ -195,13 +195,11 @@ class BearerTokenBackend(AuthenticationBackend):
             needed_scopes: set[str] = set()
             if req_message.params and "name" in req_message.params:
                 needed_scopes = self.scopes_mapping.get(
-                    req_message.params["name"],
-                    set()
+                    req_message.params["name"], set()
                 )
             if needed_scopes.difference(scopes):
                 raise AuthorizationError(
-                    f"Invalid auth scopes, needed: {needed_scopes}, "
-                    f"received: {scopes}"
+                    f"Invalid auth scopes, needed: {needed_scopes}, received: {scopes}"
                 )
 
             if req_message.params is None:

@@ -201,28 +201,16 @@ class BearerTokenBackend(AuthenticationBackend):
         except Exception as e:
             raise Exception(f"Error preparing public key: {str(e)}")
 
-        # Verify and decode the token
-        try:
-            payload = jwt.decode(
-                token,
-                public_key,
-                algorithms=["RS256"],  # Adjust if your IdP uses a different algorithm
-                options={
-                    "verify_signature": True,
-                    "verify_exp": True,
-                    "verify_aud": False,
-                    "verify_iat": True,
-                    "verify_iss": True,
-                    "require": ["exp", "iat", "iss"],  # , "aud"]  # Required claims
-                },
-                # audience="",  # Replace with your client ID
-                # issuer=""  # Replace with your IdP's issuer URL
-            )
-            return payload
-
-        except ExpiredSignatureError:
-            raise Exception("Token has expired")
-        except InvalidTokenError as e:
-            raise Exception(f"Invalid token: {str(e)}")
-        except Exception as e:
-            raise Exception(f"Error validating token: {str(e)}")
+        payload = jwt.decode(
+            token,
+            public_key,
+            options={
+                "verify_signature": True,
+                "verify_exp": True,
+                "verify_aud": False,
+                "verify_iat": True,
+                "verify_iss": True,
+                "require": ["exp", "iat", "iss"],
+            },
+        )
+        return payload

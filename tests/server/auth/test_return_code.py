@@ -52,6 +52,7 @@ async def test_unauthenticated_return_code(mock_bearer_token_backend):
     )
 
     response = await transport.validate_auth(request, message)
+    assert response is not None
     assert response.status_code == 401
 
 
@@ -94,4 +95,5 @@ async def test_unauthorized_return_code(mock_bearer_token_backend):
         params={"name": "required-scope"},
     )
     response = await transport.validate_auth(request, message)
+    assert response is not None
     assert response.status_code == 403

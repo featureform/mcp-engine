@@ -152,8 +152,6 @@ class BearerTokenBackend(AuthenticationBackend):
                 sid=decoded_token.get("sid", None),
                 token=token,
             )
-
-            None
         except (AuthenticationError, AuthorizationError) as e:
             raise e
         except Exception as err:

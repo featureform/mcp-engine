@@ -198,7 +198,7 @@ class BearerTokenBackend(AuthenticationBackend):
                 break
 
         if not rsa_key:
-            raise Exception(f"No matching key found for kid: {kid}")
+            raise KeyError(f"No matching key found for kid: {kid}")
 
         # Needed to satisfy the type checker.
         # If this is not None (which we check above), then this field
@@ -212,7 +212,7 @@ class BearerTokenBackend(AuthenticationBackend):
                 json.dumps(rsa_key)
             )
         except Exception as e:
-            raise Exception(f"Error preparing public key: {str(e)}")
+            raise InvalidTokenError(f"Error preparing public key: {str(e)}")
 
         payload = jwt.decode(
             token,

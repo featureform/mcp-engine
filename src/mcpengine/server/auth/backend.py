@@ -115,34 +115,13 @@ class BearerTokenBackend(AuthenticationBackend):
         if req_message.method not in self.METHODS_CHECK:
             return None
 
-        auth = request.headers.get("Authorization", None)
-        if auth is None:
-            raise AuthenticationError("No valid auth header")
-
         try:
-            jwks = await self._get_jwks()
+            token = self._get_bearer_token(request)
+            decoded_token = await self._decode_token(token)
+            self._validate_scopes(req_message, decoded_token)
 
-            scheme, token = auth.split()
-            if scheme.lower() != "bearer":
-                raise AuthenticationError(
-                    f'Invalid auth schema "{scheme}", must be Bearer'
-                )
-            decoded_token = self.validate_token(jwks, token)
-
-            scopes = decoded_token.get("scope", set())
-            if scopes != "":
-                scopes = set(scopes.split(" "))
-
-            needed_scopes: set[str] = set()
-            if req_message.params and "name" in req_message.params:
-                needed_scopes = self.scopes_mapping.get(
-                    req_message.params["name"], set()
-                )
-            if needed_scopes.difference(scopes):
-                raise AuthorizationError(
-                    f"Invalid auth scopes, needed: {needed_scopes}, received: {scopes}"
-                )
-
+            # Set UserContext to be pulled into Context on the
+            # handler later.
             if req_message.params is None:
                 req_message.params = {}
             req_message.params["user_context"] = UserContext(
@@ -155,6 +134,35 @@ class BearerTokenBackend(AuthenticationBackend):
             raise e
         except Exception as err:
             raise AuthenticationError("Invalid credentials") from err
+
+    async def _decode_token(self, token: str) -> Any:
+        jwks = await self._get_jwks()
+        decoded_token = self.validate_token(jwks, token)
+        return decoded_token
+
+    def _validate_scopes(self, message: mcpengine.JSONRPCRequest, decoded_token: Any):
+        scopes = decoded_token.get("scope", set())
+        if scopes != "":
+            scopes = set(scopes.split(" "))
+
+        needed_scopes: set[str] = set()
+        if message.params and "name" in message.params:
+            needed_scopes = self.scopes_mapping.get(message.params["name"], set())
+        if needed_scopes.difference(scopes):
+            raise AuthorizationError(
+                f"Invalid auth scopes, needed: {needed_scopes}, received: {scopes}"
+            )
+
+    @staticmethod
+    def _get_bearer_token(request: Request):
+        auth = request.headers.get("Authorization", None)
+        if auth is None:
+            raise AuthenticationError("No valid auth header")
+
+        scheme, token = auth.split()
+        if scheme.lower() != "bearer":
+            raise AuthenticationError(f'Invalid auth schema "{scheme}", must be Bearer')
+        return token
 
     async def _get_jwks(self) -> Any:
         # TODO: Cache this stuff

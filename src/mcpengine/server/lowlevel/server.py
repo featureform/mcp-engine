@@ -558,6 +558,7 @@ class Server(Generic[LifespanResultT]):
                         lifespan_context=lifespan_context,
                         user_id=user_context.get("sid"),
                         user_name=user_context.get("name"),
+                        token=user_context.get("token"),
                     )
                 )
                 response = await handler(req)

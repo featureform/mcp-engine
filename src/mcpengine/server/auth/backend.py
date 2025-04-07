@@ -13,19 +13,17 @@ from urllib.parse import urljoin
 
 import httpx
 import jwt
-from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from jwt import InvalidTokenError
 from pydantic.networks import HttpUrl
 from starlette.authentication import (
-    AuthCredentials,
     AuthenticationError,
-    BaseUser,
-    SimpleUser,
 )
 from starlette.requests import Request
 from starlette.responses import Response
 
 import mcpengine
 from mcpengine.server.auth.context import UserContext
+from mcpengine.server.auth.errors import AuthorizationError
 from mcpengine.server.mcpengine.utilities.logging import get_logger
 from mcpengine.types import JSONRPCMessage
 
@@ -49,67 +47,12 @@ def get_auth_backend(
     )
 
 
-def validate_token(jwks: list[dict[str,object]], token: str) -> Any:
-    try:
-        header = jwt.get_unverified_header(token)
-    except Exception as e:
-        raise Exception(f"Error decoding token header: {str(e)}")
-
-    # Get the key id from header
-    kid = header.get("kid")
-    if not kid:
-        raise Exception("Token header missing 'kid' claim")
-
-    # Find the matching key in the JWKS
-    rsa_key = None
-    for key in jwks:
-        if key.get("kid") == kid:
-            rsa_key = key
-            break
-
-    if not rsa_key:
-        raise Exception(f"No matching key found for kid: {kid}")
-
-    # Prepare the public key for verification
-    try:
-        # Convert the JWK to a format PyJWT can use
-        public_key = jwt.get_algorithm_by_name("RS256").from_jwk(json.dumps(rsa_key))
-    except Exception as e:
-        raise Exception(f"Error preparing public key: {str(e)}")
-
-    # Verify and decode the token
-    try:
-        payload = jwt.decode(
-            token,
-            public_key,
-            algorithms=["RS256"],  # Adjust if your IdP uses a different algorithm
-            options={
-                "verify_signature": True,
-                "verify_exp": True,
-                "verify_aud": False,
-                "verify_iat": True,
-                "verify_iss": True,
-                "require": ["exp", "iat", "iss"],  # , "aud"]  # Required claims
-            },
-            # audience="",  # Replace with your client ID
-            # issuer=""  # Replace with your IdP's issuer URL
-        )
-        return payload
-
-    except ExpiredSignatureError:
-        raise Exception("Token has expired")
-    except InvalidTokenError as e:
-        raise Exception(f"Invalid token: {str(e)}")
-    except Exception as e:
-        raise Exception(f"Error validating token: {str(e)}")
-
-
 class AuthenticationBackend(Protocol):
     async def authenticate(
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> tuple[AuthCredentials, BaseUser] | None: ...
+    ) -> None: ...
 
     def on_error(self, err: Exception) -> Response: ...
 
@@ -122,7 +65,7 @@ class NoAuthBackend(AuthenticationBackend):
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> tuple[AuthCredentials, BaseUser] | None:
+    ) -> None:
         return None
 
     def on_error(self, err: Exception) -> Response:
@@ -151,8 +94,12 @@ class BearerTokenBackend(AuthenticationBackend):
 
     def on_error(self, err: Exception) -> Response:
         bearer = f'Bearer scope="{" ".join(self.application_scopes)}"'
+        if isinstance(err, AuthorizationError):
+            status_code = 403
+        else:
+            status_code = 401
         return Response(
-            status_code=401,
+            status_code=status_code,
             content=str(err),
             headers={"WWW-Authenticate": bearer},
         )
@@ -161,7 +108,7 @@ class BearerTokenBackend(AuthenticationBackend):
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> tuple[AuthCredentials, BaseUser] | None:
+    ) -> None:
         if not isinstance(message.root, mcpengine.JSONRPCRequest):
             return None
         req_message = message.root
@@ -169,10 +116,56 @@ class BearerTokenBackend(AuthenticationBackend):
         if req_message.method not in self.METHODS_CHECK:
             return None
 
+        try:
+            token = self._get_bearer_token(request)
+            decoded_token = await self._decode_token(token)
+            self._validate_scopes(req_message, decoded_token)
+
+            # Set UserContext to be pulled into Context on the
+            # handler later.
+            if req_message.params is None:
+                req_message.params = {}
+            req_message.params["user_context"] = UserContext(
+                name=decoded_token.get("name", None),
+                email=decoded_token.get("email", None),
+                sid=decoded_token.get("sid", None),
+                token=token,
+            )
+        except (AuthenticationError, AuthorizationError) as e:
+            raise e
+        except Exception as err:
+            raise AuthenticationError("Invalid credentials") from err
+
+    async def _decode_token(self, token: str) -> Any:
+        jwks = await self._get_jwks()
+        decoded_token = self.validate_token(jwks, token)
+        return decoded_token
+
+    def _validate_scopes(self, message: mcpengine.JSONRPCRequest, decoded_token: Any):
+        scopes = decoded_token.get("scope", set())
+        if scopes != "":
+            scopes = set(scopes.split(" "))
+
+        needed_scopes: set[str] = set()
+        if message.params and "name" in message.params:
+            needed_scopes = self.scopes_mapping.get(message.params["name"], set())
+        if needed_scopes.difference(scopes):
+            raise AuthorizationError(
+                f"Invalid auth scopes, needed: {needed_scopes}, received: {scopes}"
+            )
+
+    @staticmethod
+    def _get_bearer_token(request: Request):
         auth = request.headers.get("Authorization", None)
         if auth is None:
             raise AuthenticationError("No valid auth header")
 
+        scheme, token = auth.split()
+        if scheme.lower() != "bearer":
+            raise AuthenticationError(f'Invalid auth schema "{scheme}", must be Bearer')
+        return token
+
+    async def _get_jwks(self) -> Any:
         # TODO: Cache this stuff
         async with httpx.AsyncClient() as client:
             issuer_url = str(self.issuer_url).rstrip("/") + "/"
@@ -182,42 +175,56 @@ class BearerTokenBackend(AuthenticationBackend):
             jwks_url = response.json()["jwks_uri"]
             response = await client.get(jwks_url)
             jwks_keys = response.json()["keys"]
-            try:
-                scheme, token = auth.split()
-                if scheme.lower() != "bearer":
-                    raise AuthenticationError(
-                        f'Invalid auth schema "{scheme}", must be Bearer'
-                    )
-                decoded_token = validate_token(jwks_keys, token)
 
-                scopes = decoded_token.get("scope", set())
-                if scopes != "":
-                    scopes = set(scopes.split(" "))
+            return jwks_keys
 
-                needed_scopes: set[str] = set()
-                if req_message.params and "name" in req_message.params:
-                    needed_scopes = self.scopes_mapping.get(
-                        req_message.params["name"],
-                        set()
-                    )
-                if needed_scopes.difference(scopes):
-                    raise AuthenticationError(
-                        f"Invalid auth scopes, needed: {needed_scopes}, "
-                        f"received: {scopes}"
-                    )
+    @staticmethod
+    def validate_token(jwks: list[dict[str, object]], token: str) -> Any:
+        try:
+            header = jwt.get_unverified_header(token)
+        except Exception as e:
+            raise InvalidTokenError(f"Error decoding token header: {str(e)}")
 
-                if req_message.params is None:
-                    req_message.params = {}
-                req_message.params["user_context"] = UserContext(
-                    name=decoded_token.get("name", None),
-                    email=decoded_token.get("email", None),
-                    sid=decoded_token.get("sid", None),
-                )
+        # Get the key id from header
+        kid = header.get("kid")
+        if not kid:
+            raise InvalidTokenError("Token header missing 'kid' claim")
 
-                sub = decoded_token["sub"]
-                return (
-                    AuthCredentials(list(scopes)),
-                    SimpleUser(sub),
-                )
-            except Exception as err:
-                raise AuthenticationError("Invalid credentials") from err
+        # Find the matching key in the JWKS
+        rsa_key = None
+        for key in jwks:
+            if key.get("kid") == kid:
+                rsa_key = key
+                break
+
+        if not rsa_key:
+            raise KeyError(f"No matching key found for kid: {kid}")
+
+        # Needed to satisfy the type checker.
+        # If this is not None (which we check above), then this field
+        # will have the name of the algorithm used for the key.
+        algorithm = str(rsa_key["alg"])
+
+        # Prepare the public key for verification
+        try:
+            # Convert the JWK to a format PyJWT can use
+            public_key = jwt.get_algorithm_by_name(algorithm).from_jwk(
+                json.dumps(rsa_key)
+            )
+        except Exception as e:
+            raise InvalidTokenError(f"Error preparing public key: {str(e)}")
+
+        payload = jwt.decode(
+            token,
+            public_key,
+            algorithms=algorithm,
+            options={
+                "verify_signature": True,
+                "verify_exp": True,
+                "verify_aud": False,
+                "verify_iat": True,
+                "verify_iss": True,
+                "require": ["exp", "iat", "iss"],
+            },
+        )
+        return payload

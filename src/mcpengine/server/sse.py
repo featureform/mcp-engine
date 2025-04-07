@@ -180,19 +180,29 @@ class SseServerTransport:
             await writer.send(err)
             return
 
-        if self._auth_backend:
-            logger.debug(
-                "authentication backend configured for SseServerTransport"
-            )
-            try:
-                await self._auth_backend.authenticate(request, message)
-            except Exception as e:
-                logger.error(f"Failed to authenticate: {e}")
-                response = self._auth_backend.on_error(e)
-                await response(scope, receive, send)
-                return
+        err_response = await self.validate_auth(
+            request,
+            message,
+        )
+        if err_response:
+            await err_response(scope, receive, send)
+            return
 
         logger.debug(f"Sending message to writer: {message}")
         response = Response("Accepted", status_code=202)
         await response(scope, receive, send)
         await writer.send(message)
+
+    async def validate_auth(
+        self,
+        request: Request,
+        message: types.JSONRPCMessage,
+    ) -> Response | None:
+        if self._auth_backend:
+            logger.debug("authentication backend configured for SseServerTransport")
+            try:
+                await self._auth_backend.authenticate(request, message)
+            except Exception as e:
+                logger.error(f"Failed to authenticate: {e}")
+                response = self._auth_backend.on_error(e)
+                return response

@@ -194,9 +194,9 @@ class SseServerTransport:
         await writer.send(message)
 
     async def validate_auth(
-            self,
-            request: Request,
-            message: types.JSONRPCMessage,
+        self,
+        request: Request,
+        message: types.JSONRPCMessage,
     ) -> Response | None:
         if self._auth_backend:
             logger.debug("authentication backend configured for SseServerTransport")

@@ -16,10 +16,7 @@ import jwt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from pydantic.networks import HttpUrl
 from starlette.authentication import (
-    AuthCredentials,
     AuthenticationError,
-    BaseUser,
-    SimpleUser,
 )
 from starlette.requests import Request
 from starlette.responses import Response
@@ -48,7 +45,6 @@ def get_auth_backend(
         scopes_mapping=scopes_mapping,
         scopes=scopes,
     )
-
 
 
 class AuthenticationBackend(Protocol):
@@ -201,7 +197,9 @@ class BearerTokenBackend(AuthenticationBackend):
         # Prepare the public key for verification
         try:
             # Convert the JWK to a format PyJWT can use
-            public_key = jwt.get_algorithm_by_name("RS256").from_jwk(json.dumps(rsa_key))
+            public_key = jwt.get_algorithm_by_name("RS256").from_jwk(
+                json.dumps(rsa_key)
+            )
         except Exception as e:
             raise Exception(f"Error preparing public key: {str(e)}")
 
@@ -230,4 +228,3 @@ class BearerTokenBackend(AuthenticationBackend):
             raise Exception(f"Invalid token: {str(e)}")
         except Exception as e:
             raise Exception(f"Error validating token: {str(e)}")
-

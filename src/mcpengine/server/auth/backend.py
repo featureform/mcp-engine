@@ -13,7 +13,6 @@ from urllib.parse import urljoin
 
 import httpx
 import jwt
-from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from pydantic.networks import HttpUrl
 from starlette.authentication import (
     AuthenticationError,
@@ -204,6 +203,7 @@ class BearerTokenBackend(AuthenticationBackend):
         payload = jwt.decode(
             token,
             public_key,
+            algorithms=jwt.algorithms.get_default_algorithms(),
             options={
                 "verify_signature": True,
                 "verify_exp": True,

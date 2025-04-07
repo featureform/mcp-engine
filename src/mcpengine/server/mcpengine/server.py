@@ -764,7 +764,7 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
 
     @property
     def token(self) -> str:
-        return self.request_context.token
+        return str(self.request_context.token)
 
     @property
     def session(self):

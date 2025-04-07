@@ -13,6 +13,7 @@ from urllib.parse import urljoin
 
 import httpx
 import jwt
+from jwt import InvalidTokenError
 from pydantic.networks import HttpUrl
 from starlette.authentication import (
     AuthenticationError,
@@ -182,12 +183,12 @@ class BearerTokenBackend(AuthenticationBackend):
         try:
             header = jwt.get_unverified_header(token)
         except Exception as e:
-            raise Exception(f"Error decoding token header: {str(e)}")
+            raise InvalidTokenError(f"Error decoding token header: {str(e)}")
 
         # Get the key id from header
         kid = header.get("kid")
         if not kid:
-            raise Exception("Token header missing 'kid' claim")
+            raise InvalidTokenError("Token header missing 'kid' claim")
 
         # Find the matching key in the JWKS
         rsa_key = None

@@ -50,67 +50,13 @@ def get_auth_backend(
     )
 
 
-def validate_token(jwks: list[dict[str, object]], token: str) -> Any:
-    try:
-        header = jwt.get_unverified_header(token)
-    except Exception as e:
-        raise Exception(f"Error decoding token header: {str(e)}")
-
-    # Get the key id from header
-    kid = header.get("kid")
-    if not kid:
-        raise Exception("Token header missing 'kid' claim")
-
-    # Find the matching key in the JWKS
-    rsa_key = None
-    for key in jwks:
-        if key.get("kid") == kid:
-            rsa_key = key
-            break
-
-    if not rsa_key:
-        raise Exception(f"No matching key found for kid: {kid}")
-
-    # Prepare the public key for verification
-    try:
-        # Convert the JWK to a format PyJWT can use
-        public_key = jwt.get_algorithm_by_name("RS256").from_jwk(json.dumps(rsa_key))
-    except Exception as e:
-        raise Exception(f"Error preparing public key: {str(e)}")
-
-    # Verify and decode the token
-    try:
-        payload = jwt.decode(
-            token,
-            public_key,
-            algorithms=["RS256"],  # Adjust if your IdP uses a different algorithm
-            options={
-                "verify_signature": True,
-                "verify_exp": True,
-                "verify_aud": False,
-                "verify_iat": True,
-                "verify_iss": True,
-                "require": ["exp", "iat", "iss"],  # , "aud"]  # Required claims
-            },
-            # audience="",  # Replace with your client ID
-            # issuer=""  # Replace with your IdP's issuer URL
-        )
-        return payload
-
-    except ExpiredSignatureError:
-        raise Exception("Token has expired")
-    except InvalidTokenError as e:
-        raise Exception(f"Invalid token: {str(e)}")
-    except Exception as e:
-        raise Exception(f"Error validating token: {str(e)}")
-
 
 class AuthenticationBackend(Protocol):
     async def authenticate(
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> tuple[AuthCredentials, BaseUser] | None: ...
+    ) -> None: ...
 
     def on_error(self, err: Exception) -> Response: ...
 
@@ -123,7 +69,7 @@ class NoAuthBackend(AuthenticationBackend):
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> tuple[AuthCredentials, BaseUser] | None:
+    ) -> None:
         return None
 
     def on_error(self, err: Exception) -> Response:
@@ -166,7 +112,7 @@ class BearerTokenBackend(AuthenticationBackend):
         self,
         request: Request,
         message: JSONRPCMessage,
-    ) -> tuple[AuthCredentials, BaseUser] | None:
+    ) -> None:
         if not isinstance(message.root, mcpengine.JSONRPCRequest):
             return None
         req_message = message.root
@@ -179,14 +125,14 @@ class BearerTokenBackend(AuthenticationBackend):
             raise AuthenticationError("No valid auth header")
 
         try:
-            jwks = await self.get_jwks()
+            jwks = await self._get_jwks()
 
             scheme, token = auth.split()
             if scheme.lower() != "bearer":
                 raise AuthenticationError(
                     f'Invalid auth schema "{scheme}", must be Bearer'
                 )
-            decoded_token = validate_token(jwks, token)
+            decoded_token = self.validate_token(jwks, token)
 
             scopes = decoded_token.get("scope", set())
             if scopes != "":
@@ -211,17 +157,13 @@ class BearerTokenBackend(AuthenticationBackend):
                 token=token,
             )
 
-            sub = decoded_token["sub"]
-            return (
-                AuthCredentials(list(scopes)),
-                SimpleUser(sub),
-            )
+            None
         except (AuthenticationError, AuthorizationError) as e:
             raise e
         except Exception as err:
             raise AuthenticationError("Invalid credentials") from err
 
-    async def get_jwks(self) -> Any:
+    async def _get_jwks(self) -> Any:
         # TODO: Cache this stuff
         async with httpx.AsyncClient() as client:
             issuer_url = str(self.issuer_url).rstrip("/") + "/"
@@ -233,3 +175,59 @@ class BearerTokenBackend(AuthenticationBackend):
             jwks_keys = response.json()["keys"]
 
             return jwks_keys
+
+    @staticmethod
+    def validate_token(jwks: list[dict[str, object]], token: str) -> Any:
+        try:
+            header = jwt.get_unverified_header(token)
+        except Exception as e:
+            raise Exception(f"Error decoding token header: {str(e)}")
+
+        # Get the key id from header
+        kid = header.get("kid")
+        if not kid:
+            raise Exception("Token header missing 'kid' claim")
+
+        # Find the matching key in the JWKS
+        rsa_key = None
+        for key in jwks:
+            if key.get("kid") == kid:
+                rsa_key = key
+                break
+
+        if not rsa_key:
+            raise Exception(f"No matching key found for kid: {kid}")
+
+        # Prepare the public key for verification
+        try:
+            # Convert the JWK to a format PyJWT can use
+            public_key = jwt.get_algorithm_by_name("RS256").from_jwk(json.dumps(rsa_key))
+        except Exception as e:
+            raise Exception(f"Error preparing public key: {str(e)}")
+
+        # Verify and decode the token
+        try:
+            payload = jwt.decode(
+                token,
+                public_key,
+                algorithms=["RS256"],  # Adjust if your IdP uses a different algorithm
+                options={
+                    "verify_signature": True,
+                    "verify_exp": True,
+                    "verify_aud": False,
+                    "verify_iat": True,
+                    "verify_iss": True,
+                    "require": ["exp", "iat", "iss"],  # , "aud"]  # Required claims
+                },
+                # audience="",  # Replace with your client ID
+                # issuer=""  # Replace with your IdP's issuer URL
+            )
+            return payload
+
+        except ExpiredSignatureError:
+            raise Exception("Token has expired")
+        except InvalidTokenError as e:
+            raise Exception(f"Invalid token: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Error validating token: {str(e)}")
+

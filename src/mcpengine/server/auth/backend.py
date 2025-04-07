@@ -191,10 +191,15 @@ class BearerTokenBackend(AuthenticationBackend):
         if not rsa_key:
             raise Exception(f"No matching key found for kid: {kid}")
 
+        # Needed to satisfy the type checker.
+        # If this is not None (which we check above), then this field
+        # will have the name of the algorithm used for the key.
+        algorithm = str(rsa_key["alg"])
+
         # Prepare the public key for verification
         try:
             # Convert the JWK to a format PyJWT can use
-            public_key = jwt.get_algorithm_by_name("RS256").from_jwk(
+            public_key = jwt.get_algorithm_by_name(algorithm).from_jwk(
                 json.dumps(rsa_key)
             )
         except Exception as e:
@@ -203,7 +208,7 @@ class BearerTokenBackend(AuthenticationBackend):
         payload = jwt.decode(
             token,
             public_key,
-            algorithms=jwt.algorithms.get_default_algorithms(),
+            algorithms=algorithm,
             options={
                 "verify_signature": True,
                 "verify_exp": True,

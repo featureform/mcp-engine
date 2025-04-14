@@ -37,6 +37,7 @@ from mcpengine.server.auth.backend import (
     OPENID_WELL_KNOWN_PATH,
     get_auth_backend,
 )
+from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
 from mcpengine.server.lowlevel.server import Server as MCPServer
@@ -219,6 +220,8 @@ class MCPEngine:
         try:
             content = await resource.read()
             return [ReadResourceContents(content=content, mime_type=resource.mime_type)]
+        except (AuthenticationError, AuthorizationError) as err:
+            raise err
         except Exception as e:
             logger.error(f"Error reading resource {uri}: {e}")
             raise ResourceError(str(e))

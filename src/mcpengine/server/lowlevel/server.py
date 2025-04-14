@@ -418,6 +418,9 @@ class Server(Generic[LifespanResultT]):
                         types.CallToolResult(content=list(results), isError=False)
                     )
                 except Exception as e:
+                    if isinstance(e.__cause__, AuthenticationError) or isinstance(e.__cause__, AuthorizationError):
+                        raise e.__cause__
+
                     return types.ServerResult(
                         types.CallToolResult(
                             content=[types.TextContent(type="text", text=str(e))],

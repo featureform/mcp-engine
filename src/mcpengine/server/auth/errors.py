@@ -4,5 +4,8 @@
 # project root for full license information.
 
 
+class AuthenticationError(Exception):
+    pass
+
 class AuthorizationError(Exception):
     pass

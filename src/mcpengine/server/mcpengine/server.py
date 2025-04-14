@@ -595,6 +595,8 @@ class MCPEngine:
             messages = await self._prompt_manager.render_prompt(name, arguments)
 
             return GetPromptResult(messages=pydantic_core.to_jsonable_python(messages))
+        except (AuthenticationError, AuthorizationError) as err:
+            raise err
         except Exception as e:
             logger.error(f"Error getting prompt {name}: {e}")
             raise ValueError(str(e))

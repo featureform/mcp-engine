@@ -71,3 +71,28 @@ async def test_resource_errors():
         base_error = errinfo.value.error
         assert base_error.code == AUTHORIZATION_ERROR
 
+
+
+@pytest.mark.anyio
+async def test_prompt_errors():
+    mcp = MCPEngine()
+
+    @mcp.prompt()
+    def authn_error():
+        raise AuthenticationError
+
+    @mcp.prompt()
+    def authz_error():
+        raise AuthorizationError
+
+    async with client_session(mcp._mcp_server) as client:
+        with pytest.raises(McpError) as errinfo:
+            await client.get_prompt("authn_error")
+        base_error = errinfo.value.error
+        assert base_error.code == AUTHENTICATION_ERROR
+
+    async with client_session(mcp._mcp_server) as client:
+        with pytest.raises(McpError) as errinfo:
+            await client.get_prompt("authz_error")
+        base_error = errinfo.value.error
+        assert base_error.code == AUTHORIZATION_ERROR

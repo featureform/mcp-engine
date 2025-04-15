@@ -37,6 +37,7 @@ from mcpengine.server.auth.backend import (
     OPENID_WELL_KNOWN_PATH,
     get_auth_backend,
 )
+from mcpengine.server.http import http_server
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
 from mcpengine.server.lowlevel.server import Server as MCPServer
@@ -51,7 +52,7 @@ from mcpengine.server.mcpengine.resources import (
 from mcpengine.server.mcpengine.tools import ToolManager
 from mcpengine.server.mcpengine.utilities.logging import configure_logging, get_logger
 from mcpengine.server.mcpengine.utilities.types import Image
-from mcpengine.server.session import ServerSession, ServerSessionT
+from mcpengine.server.session import InitializationState, ServerSession, ServerSessionT
 from mcpengine.server.settings import Settings
 from mcpengine.server.sse import SseServerTransport
 from mcpengine.server.stdio import stdio_server
@@ -127,20 +128,22 @@ class MCPEngine:
     def instructions(self) -> str | None:
         return self._mcp_server.instructions
 
-    def run(self, transport: Literal["stdio", "sse"] = "stdio") -> None:
+    def run(self, transport: Literal["stdio", "sse", "http"] = "stdio") -> None:
         """Run the MCPEngine server. Note this is a synchronous function.
 
         Args:
             transport: Transport protocol to use ("stdio" or "sse")
         """
-        TRANSPORTS = Literal["stdio", "sse"]
+        TRANSPORTS = Literal["stdio", "sse", "http"]
         if transport not in TRANSPORTS.__args__:  # type: ignore
             raise ValueError(f"Unknown transport: {transport}")
 
         if transport == "stdio":
             anyio.run(self.run_stdio_async)
-        else:  # transport == "sse"
+        elif transport == "sse":
             anyio.run(self.run_sse_async)
+        else:  # transport == "http"
+            anyio.run(self.run_http_async)
 
     def _setup_handlers(self) -> None:
         """Set up core MCP protocol handlers."""
@@ -504,18 +507,20 @@ class MCPEngine:
                 self._mcp_server.create_initialization_options(),
             )
 
-    async def run_sse_async(self) -> None:
-        """Run the server using SSE transport."""
-        starlette_app = self.sse_app()
-
+    async def run_starlette_app(self, app: Starlette) -> None:
         config = uvicorn.Config(
-            starlette_app,
+            app,
             host=self.settings.host,
             port=self.settings.port,
             log_level=self.settings.log_level.lower(),
         )
         server = uvicorn.Server(config)
         await server.serve()
+
+    async def run_sse_async(self) -> None:
+        """Run the server using SSE transport."""
+        starlette_app = self.sse_app()
+        await self.run_starlette_app(starlette_app)
 
     def sse_app(self) -> Starlette:
         """Return an instance of the SSE server app."""
@@ -557,6 +562,57 @@ class MCPEngine:
             ),
             Route(self.settings.sse_path, endpoint=handle_sse),
             Mount(self.settings.message_path, app=sse.handle_post_message),
+        ]
+
+        return Starlette(
+            debug=self.settings.debug,
+            middleware=middleware,
+            routes=routes,
+        )
+
+    async def run_http_async(self) -> None:
+        """Run the server using regular HTTP transport."""
+        starlette_app = self.http_app()
+        await self.run_starlette_app(starlette_app)
+
+    def http_app(self) -> Starlette:
+        """Return an instance of the HTTP server app."""
+        auth_backend = get_auth_backend(self.settings, self.scopes, self.scopes_mapping)
+
+        async def handle_http(request: Request) -> None:
+            async with http_server(
+                    request.scope,
+                    request.receive,
+                    request._send,  # type: ignore[reportPrivateUsage]
+            ) as streams:
+                await self._mcp_server.run(
+                    streams[0],
+                    streams[1],
+                    self._mcp_server.create_initialization_options(),
+                    InitializationState.Initialized,
+                )
+
+        async def handle_well_known(_: Request) -> Response:
+            async with httpx.AsyncClient() as client:
+                issuer_url = str(self.settings.issuer_url).rstrip("/") + "/"
+                well_known_url = urljoin(issuer_url, OPENID_WELL_KNOWN_PATH)
+                response = await client.get(well_known_url)
+                return JSONResponse(response.json())
+
+        middleware: Sequence[Middleware] = []
+
+        routes = [
+            Route(
+                f"/{OAUTH_WELL_KNOWN_PATH}",
+                endpoint=handle_well_known,
+                methods=["GET", "OPTIONS"],
+            ),
+            Route(
+                f"/{OPENID_WELL_KNOWN_PATH}",
+                endpoint=handle_well_known,
+                methods=["GET", "OPTIONS"],
+            ),
+            Route(self.settings.mcp_path, endpoint=handle_http, methods=["POST"]),
         ]
 
         return Starlette(

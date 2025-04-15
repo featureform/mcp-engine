@@ -37,7 +37,7 @@ from mcpengine.server.auth.backend import (
     OPENID_WELL_KNOWN_PATH,
     get_auth_backend,
 )
-from mcpengine.server.http import http_server
+from mcpengine.server.http import HttpServerTransport
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
 from mcpengine.server.lowlevel.server import Server as MCPServer
@@ -578,19 +578,24 @@ class MCPEngine:
     def http_app(self) -> Starlette:
         """Return an instance of the HTTP server app."""
         auth_backend = get_auth_backend(self.settings, self.scopes, self.scopes_mapping)
+        transport = HttpServerTransport(auth_backend)
 
         async def handle_http(request: Request) -> None:
-            async with http_server(
+            print('getting into handle_http')
+            async with transport.http_server(
                     request.scope,
                     request.receive,
                     request._send,  # type: ignore[reportPrivateUsage]
             ) as streams:
+                print('Streams:', streams)
                 await self._mcp_server.run(
                     streams[0],
                     streams[1],
                     self._mcp_server.create_initialization_options(),
                     InitializationState.Initialized,
                 )
+                print('done running _mcp_server.run')
+            print('Closing out handle_http')
 
         async def handle_well_known(_: Request) -> Response:
             async with httpx.AsyncClient() as client:

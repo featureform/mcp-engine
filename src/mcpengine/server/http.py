@@ -67,10 +67,16 @@ class HttpServerTransport:
             await err_response(scope, receive, send)
             return
 
+        if isinstance(message.root, types.JSONRPCNotification):
+            logger.debug(f"Skipping notification message: {message}")
+            response = JSONResponse(status_code=200, content={})
+            await response(scope, receive, send)
+            return
+
         await read_stream_writer.send(message)
 
         async def http_writer():
-            logger.debug("Starting HTTP reader")
+            logger.debug("Starting HTTP writer")
 
             response_content = []
             async with write_stream_reader:
@@ -91,7 +97,7 @@ class HttpServerTransport:
                             by_alias=True, exclude_none=True,
                         )
                     )
-                response = JSONResponse(status_code=200, content=response_content)
+                response = JSONResponse(status_code=200, content=response_content[0])
                 await response(scope, receive, send)
 
         async with anyio.create_task_group() as tg:

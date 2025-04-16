@@ -45,8 +45,11 @@ async def http_client(
                         async with write_stream_reader:
                             async for message in write_stream_reader:
                                 if isinstance(message.root, types.JSONRPCNotification):
-                                    logger.debug(f"Skipping notification message: {message}")
+                                    logger.debug(
+                                        f"Skipping notification message: {message}"
+                                    )
                                     continue
+
                                 logger.debug(f"Sending client message: {message}")
                                 response = await client.post(
                                     endpoint_url,

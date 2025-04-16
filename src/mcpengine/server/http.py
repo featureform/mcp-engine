@@ -79,7 +79,9 @@ class HttpServerTransport:
 
             async with write_stream_reader:
                 async for message in write_stream_reader:
-                    if not isinstance(message.root, types.JSONRPCResponse):
+                    # We don't care about sending notifications back, and are only
+                    # looking for an actual response.
+                    if isinstance(message.root, types.JSONRPCNotification):
                         continue
 
                     # TODO: We close read_stream_writer here because the underlying

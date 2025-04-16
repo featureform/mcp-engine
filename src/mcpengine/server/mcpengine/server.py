@@ -582,9 +582,9 @@ class MCPEngine:
 
         async def handle_http(request: Request) -> None:
             async with transport.http_server(
-                    request.scope,
-                    request.receive,
-                    request._send,  # type: ignore[reportPrivateUsage]
+                request.scope,
+                request.receive,
+                request._send,  # type: ignore[reportPrivateUsage]
             ) as streams:
                 await self._mcp_server.run(
                     streams[0],
@@ -773,9 +773,9 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
         Returns:
             The resource content as either text or bytes
         """
-        assert self._mcpengine is not None, (
-            "Context is not available outside of a request"
-        )
+        assert (
+            self._mcpengine is not None
+        ), "Context is not available outside of a request"
         return await self._mcpengine.read_resource(uri)
 
     async def log(

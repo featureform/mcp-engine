@@ -84,7 +84,7 @@ def make_server_app() -> Starlette:
 
     async def handle_post(request: Request) -> None:
         async with http.http_server(
-                request.scope, request.receive, request._send
+            request.scope, request.receive, request._send
         ) as streams:
             await server.run(
                 streams[0],
@@ -167,7 +167,7 @@ async def test_http_client_basic_connection(server: None, server_url: str) -> No
 
 @pytest.fixture
 async def initialized_http_client_session(
-        server, server_url: str
+    server, server_url: str
 ) -> AsyncGenerator[ClientSession, None]:
     async with http_client(server_url + "/mcp") as streams:
         async with ClientSession(*streams) as session:
@@ -177,7 +177,7 @@ async def initialized_http_client_session(
 
 @pytest.mark.anyio
 async def test_http_client_happy_request_and_response(
-        initialized_http_client_session: ClientSession,
+    initialized_http_client_session: ClientSession,
 ) -> None:
     session = initialized_http_client_session
     response = await session.read_resource(uri=AnyUrl("foobar://should-work"))
@@ -188,7 +188,7 @@ async def test_http_client_happy_request_and_response(
 
 @pytest.mark.anyio
 async def test_http_client_exception_handling(
-        initialized_http_client_session: ClientSession,
+    initialized_http_client_session: ClientSession,
 ) -> None:
     session = initialized_http_client_session
     with pytest.raises(McpError, match="OOPS! no resource with that URI was found"):

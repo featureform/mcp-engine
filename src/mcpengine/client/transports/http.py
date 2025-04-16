@@ -18,9 +18,9 @@ def remove_request_params(url: str) -> str:
 
 @asynccontextmanager
 async def http_client(
-        endpoint_url: str,
-        headers: dict[str, Any] | None = None,
-        timeout: float = 30,
+    endpoint_url: str,
+    headers: dict[str, Any] | None = None,
+    timeout: float = 30,
 ):
     """
     Client transport for HTTP.
@@ -39,6 +39,7 @@ async def http_client(
             logger.info(
                 f"Connecting to HTTP endpoint: {remove_request_params(endpoint_url)}"
             )
+
             async def post_writer():
                 async with (
                     write_stream_reader,
@@ -83,9 +84,7 @@ async def http_client(
                         await write_stream.aclose()
                         await read_stream_writer.aclose()
 
-            logger.info(
-                f"Starting post_writer with endpoint URL: {endpoint_url}"
-            )
+            logger.info(f"Starting post_writer with endpoint URL: {endpoint_url}")
             tg.start_soon(post_writer)
 
             try:

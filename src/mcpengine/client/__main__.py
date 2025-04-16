@@ -49,10 +49,7 @@ async def run_session(
 
 
 async def main(
-        command_or_url: str,
-        args: list[str],
-        env: list[tuple[str, str]],
-        http_mode: str
+    command_or_url: str, args: list[str], env: list[tuple[str, str]], http_mode: str
 ):
     env_dict = dict(env)
 
@@ -96,13 +93,10 @@ def cli():
     )
 
     args = parser.parse_args()
-    anyio.run(partial(
-        main,
-        args.command_or_url,
-        args.args,
-        args.env,
-        args.http_mode
-    ), backend="trio")
+    anyio.run(
+        partial(main, args.command_or_url, args.args, args.env, args.http_mode),
+        backend="trio",
+    )
 
 
 if __name__ == "__main__":

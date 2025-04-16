@@ -13,6 +13,7 @@ Example usage:
 ```
 ```
 """
+
 import logging
 from contextlib import asynccontextmanager
 
@@ -27,6 +28,7 @@ from mcpengine.server.auth.backend import AuthenticationBackend
 
 logger = logging.getLogger(__name__)
 
+
 class HttpServerTransport:
     """
     HTTP-only server transport for MCP. This class provides _two_ ASGI applications,
@@ -35,13 +37,10 @@ class HttpServerTransport:
 
     _auth_backend: AuthenticationBackend | None
 
-    def __init__(
-            self, auth_backend: AuthenticationBackend | None = None
-    ) -> None:
+    def __init__(self, auth_backend: AuthenticationBackend | None = None) -> None:
         super().__init__()
         self._auth_backend = auth_backend
         logger.debug("HTTP Transport Initialized")
-
 
     @asynccontextmanager
     async def http_server(self, scope: Scope, receive: Receive, send: Send):
@@ -78,9 +77,11 @@ class HttpServerTransport:
         async def http_writer():
             logger.debug("Starting HTTP writer")
 
-            response_content = []
             async with write_stream_reader:
                 async for message in write_stream_reader:
+                    if not isinstance(message.root, types.JSONRPCResponse):
+                        continue
+
                     # TODO: We close read_stream_writer here because the underlying
                     # session logic ties the read_stream and write_stream together,
                     # and closes the both of them when one is closed. Thus, the way that
@@ -92,22 +93,21 @@ class HttpServerTransport:
                     # this is the much easier path.
                     await read_stream_writer.aclose()
 
-                    response_content.append(
-                        message.model_dump(
-                            by_alias=True, exclude_none=True,
-                        )
+                    response_model = message.model_dump(
+                        by_alias=True,
+                        exclude_none=True,
                     )
-                response = JSONResponse(status_code=200, content=response_content[0])
-                await response(scope, receive, send)
+                    response = JSONResponse(status_code=200, content=response_model)
+                    await response(scope, receive, send)
 
         async with anyio.create_task_group() as tg:
             tg.start_soon(http_writer)
             yield read_stream, write_stream
 
     async def validate_auth(
-            self,
-            request: Request,
-            message: types.JSONRPCMessage,
+        self,
+        request: Request,
+        message: types.JSONRPCMessage,
     ) -> Response | None:
         if self._auth_backend:
             logger.debug("authentication backend configured for HTTPServerTransport")

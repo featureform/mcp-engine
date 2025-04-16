@@ -29,14 +29,8 @@ logger = logging.getLogger(__name__)
 
 class HttpServerTransport:
     """
-    SSE server transport for MCP. This class provides _two_ ASGI applications,
+    HTTP-only server transport for MCP. This class provides _two_ ASGI applications,
     suitable to be used with a framework like Starlette and a server like Hypercorn:
-
-        1. connect_sse() is an ASGI application which receives incoming GET requests,
-           and sets up a new SSE stream to send server messages to the client.
-        2. handle_post_message() is an ASGI application which receives incoming POST
-           requests, which should contain client messages that link to a
-           previously-established SSE session.
     """
 
     _auth_backend: AuthenticationBackend | None
@@ -44,11 +38,6 @@ class HttpServerTransport:
     def __init__(
             self, auth_backend: AuthenticationBackend | None = None
     ) -> None:
-        """
-        Creates a new SSE server transport, which will direct the client to POST
-        messages to the relative or absolute URL given.
-        """
-
         super().__init__()
         self._auth_backend = auth_backend
         logger.debug("HTTP Transport Initialized")
@@ -57,8 +46,8 @@ class HttpServerTransport:
     @asynccontextmanager
     async def http_server(self, scope: Scope, receive: Receive, send: Send):
         if scope["type"] != "http":
-            logger.error("connect_sse received non-HTTP request")
-            raise ValueError("connect_sse can only handle HTTP requests")
+            logger.error("http_server received non-HTTP request")
+            raise ValueError("http_server can only handle HTTP requests")
 
         read_stream: MemoryObjectReceiveStream[types.JSONRPCMessage | Exception]
         read_stream_writer: MemoryObjectSendStream[types.JSONRPCMessage | Exception]
@@ -115,7 +104,7 @@ class HttpServerTransport:
             message: types.JSONRPCMessage,
     ) -> Response | None:
         if self._auth_backend:
-            logger.debug("authentication backend configured for SseServerTransport")
+            logger.debug("authentication backend configured for HTTPServerTransport")
             try:
                 await self._auth_backend.authenticate(request, message)
             except Exception as e:

@@ -40,42 +40,43 @@ async def http_client(
                 f"Connecting to HTTP endpoint: {remove_request_params(endpoint_url)}"
             )
             async def post_writer():
-                async with httpx.AsyncClient(headers=headers) as client:
+                async with (
+                    write_stream_reader,
+                    httpx.AsyncClient(headers=headers) as client,
+                ):
                     try:
-                        async with write_stream_reader:
-                            async for message in write_stream_reader:
-                                if isinstance(message.root, types.JSONRPCNotification):
-                                    logger.debug(
-                                        f"Skipping notification message: {message}"
-                                    )
-                                    continue
-
-                                logger.debug(f"Sending client message: {message}")
-                                response = await client.post(
-                                    endpoint_url,
-                                    json=message.model_dump(
-                                        by_alias=True,
-                                        mode="json",
-                                        exclude_none=True,
-                                    ),
-                                    timeout=timeout,
-                                )
-                                response.raise_for_status()
+                        async for message in write_stream_reader:
+                            if isinstance(message.root, types.JSONRPCNotification):
                                 logger.debug(
-                                    "Client message sent successfully: "
-                                    f"{response.status_code}"
+                                    f"Skipping notification message: {message}"
                                 )
-                                try:
-                                    message = types.JSONRPCMessage.model_validate_json(
-                                        response.content
-                                    )
-                                    logger.debug(f"Received server message: {message}")
-                                except Exception as exc:
-                                    logger.error(f"Error parsing server message: {exc}")
-                                    await read_stream_writer.send(exc)
-                                    continue
+                                continue
 
+                            logger.debug(f"Sending client message: {message}")
+                            response = await client.post(
+                                endpoint_url,
+                                json=message.model_dump(
+                                    by_alias=True,
+                                    mode="json",
+                                    exclude_none=True,
+                                ),
+                                timeout=timeout,
+                            )
+                            response.raise_for_status()
+                            logger.debug(
+                                "Client message sent successfully: "
+                                f"{response.status_code}"
+                            )
+                            try:
+                                message = types.JSONRPCMessage.model_validate_json(
+                                    response.content
+                                )
+                                logger.debug(f"Received server message: {message}")
                                 await read_stream_writer.send(message)
+                            except Exception as exc:
+                                logger.error(f"Error parsing server message: {exc}")
+                                await read_stream_writer.send(exc)
+                                continue
                     except Exception as exc:
                         logger.error(f"Error in post_writer: {exc}")
                     finally:
@@ -83,7 +84,7 @@ async def http_client(
                         await read_stream_writer.aclose()
 
             logger.info(
-                f"Starting post writer with endpoint URL: {endpoint_url}"
+                f"Starting post_writer with endpoint URL: {endpoint_url}"
             )
             tg.start_soon(post_writer)
 

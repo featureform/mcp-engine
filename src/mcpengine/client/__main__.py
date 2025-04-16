@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 import argparse
 import logging
 import sys
@@ -89,7 +95,7 @@ def cli():
         "--http-mode",
         choices=["http", "sse"],
         default="sse",
-        help="Which style of HTTP communication to use.",
+        help="The style of HTTP communication to use.",
     )
 
     args = parser.parse_args()

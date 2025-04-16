@@ -1,4 +1,3 @@
-# Copyright (c) 2024 Anthropic, PBC
 # Copyright (c) 2025 Featureform, Inc.
 #
 # Licensed under the MIT License. See LICENSE file in the

@@ -20,7 +20,7 @@ def remove_request_params(url: str) -> str:
 async def http_client(
         endpoint_url: str,
         headers: dict[str, Any] | None = None,
-        timeout: float = 15,
+        timeout: float = 30,
 ):
     """
     Client transport for HTTP.
@@ -39,11 +39,14 @@ async def http_client(
             logger.info(
                 f"Connecting to HTTP endpoint: {remove_request_params(endpoint_url)}"
             )
-            async with httpx.AsyncClient(headers=headers) as client:
-                async def post_writer():
+            async def post_writer():
+                async with httpx.AsyncClient(headers=headers) as client:
                     try:
                         async with write_stream_reader:
                             async for message in write_stream_reader:
+                                if isinstance(message.root, types.JSONRPCNotification):
+                                    logger.debug(f"Skipping notification message: {message}")
+                                    continue
                                 logger.debug(f"Sending client message: {message}")
                                 response = await client.post(
                                     endpoint_url,
@@ -61,7 +64,7 @@ async def http_client(
                                 )
                                 try:
                                     message = types.JSONRPCMessage.model_validate_json(
-                                        response.json()
+                                        response.content
                                     )
                                     logger.debug(f"Received server message: {message}")
                                 except Exception as exc:
@@ -76,15 +79,15 @@ async def http_client(
                         await write_stream.aclose()
                         await read_stream_writer.aclose()
 
-                logger.info(
-                    f"Starting post writer with endpoint URL: {endpoint_url}"
-                )
-                tg.start_soon(post_writer)
+            logger.info(
+                f"Starting post writer with endpoint URL: {endpoint_url}"
+            )
+            tg.start_soon(post_writer)
 
-                try:
-                    yield read_stream, write_stream
-                finally:
-                    tg.cancel_scope.cancel()
+            try:
+                yield read_stream, write_stream
+            finally:
+                tg.cancel_scope.cancel()
         finally:
             await read_stream_writer.aclose()
             await write_stream.aclose()

@@ -84,12 +84,7 @@ class HttpServerTransport:
             logger.debug("Starting HTTP reader")
 
             response_content = []
-            async with (
-                write_stream_reader,
-                write_stream,
-                read_stream_writer,
-                read_stream,
-            ):
+            async with write_stream_reader:
                 async for message in write_stream_reader:
                     # TODO: We close read_stream_writer here because the underlying
                     # session logic ties the read_stream and write_stream together,

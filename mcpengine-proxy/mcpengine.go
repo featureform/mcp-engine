@@ -19,8 +19,10 @@ import (
 )
 
 type Config struct {
+	UseSSE     bool
 	Endpoint   string
 	SSEPath    string
+	MCPPath    string
 	Logger     *zap.SugaredLogger
 	AuthConfig *AuthConfig
 }
@@ -29,18 +31,27 @@ type MCPEngine struct {
 	endpoint   string
 	inputFile  *os.File
 	outputFile *os.File
+	useSse     bool
 	sseClient  sseClient
+	mcpPath    string
 	httpClient *http.Client
 	auth       *AuthManager
 	logger     *zap.SugaredLogger
 }
 
 func New(cfg Config) (*MCPEngine, error) {
+	var sseClient sseClient
+	if cfg.UseSSE {
+		sseClient = sse.NewClient(fmt.Sprintf("%s%s", cfg.Endpoint, cfg.SSEPath))
+	}
+	cfg.Logger.Debugf("SSE CLIENT %v\n", sseClient)
 	return &MCPEngine{
 		endpoint:   cfg.Endpoint,
 		inputFile:  os.Stdin,
 		outputFile: os.Stdout,
-		sseClient:  sse.NewClient(fmt.Sprintf("%s%s", cfg.Endpoint, cfg.SSEPath)),
+		useSse:     cfg.UseSSE,
+		sseClient:  sseClient,
+		mcpPath:    cfg.MCPPath,
 		httpClient: &http.Client{},
 		logger:     cfg.Logger,
 		auth:       NewAuthManager(cfg.AuthConfig, cfg.Logger.With("svc", "auth")),
@@ -59,8 +70,14 @@ func (mcp *MCPEngine) Start(ctx context.Context) {
 		"file-reader": NewFileReader(mcp.inputFile, stdinToPost, mcp.logger.With("worker", "file-reader")),
 		"http-post":   NewHTTPPostSender(mcp.httpClient, mcp.endpoint, postPathChan, stdinToPost, stdoutChan, mcp.auth, mcp.logger.With("worker", "http-post")),
 		"stdout":      NewOutputProxy(mcp.outputFile, stdoutChan, mcp.logger.With("worker", "stdout")),
-		"sse":         NewSSEWorker(mcp.sseClient, postPathChan, stdoutChan, mcp.logger.With("worker", "sse")),
 	}
+
+	if mcp.useSse {
+		workers["sse"] = NewSSEWorker(mcp.sseClient, postPathChan, stdoutChan, mcp.logger.With("worker", "sse"))
+	} else {
+		postPathChan <- mcp.mcpPath
+	}
+
 	mcp.logger.Info("Running MCPEngine")
 	mcp.runWorkersAndWait(ctx, workers, mcp.logger)
 	mcp.logger.Info("MCPEngine Exited")
@@ -182,7 +199,7 @@ func (hs *HTTPPostSender) Run(ctx context.Context) error {
 		return err
 	}
 
-	hs.logger.Debug("Received endpoint starting to listen to messages", "post-path", parsedURL)
+	hs.logger.Debugw("Received endpoint starting to listen to messages", "post-path", parsedURL)
 	// Process messages.
 	for {
 		select {
@@ -213,6 +230,16 @@ func (hs *HTTPPostSender) Run(ctx context.Context) error {
 			}
 			// Handle response status.
 			switch resp.StatusCode {
+			// In the case of a 200, the response is directly in the body.
+			case http.StatusOK:
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					fmt.Println("Error reading body:", err)
+					break
+				}
+				bodyString := string(body)
+				hs.logger.Debugf("Response received: %s", bodyString)
+				hs.outputChan <- bodyString
 			case http.StatusAccepted:
 				hs.logger.Debugf("Message accepted: %s", msg)
 			case http.StatusUnauthorized, http.StatusForbidden:

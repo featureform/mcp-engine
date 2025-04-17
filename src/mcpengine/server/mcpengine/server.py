@@ -37,6 +37,7 @@ from mcpengine.server.auth.backend import (
     OPENID_WELL_KNOWN_PATH,
     get_auth_backend,
 )
+from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
 from mcpengine.server.http import HttpServerTransport
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
@@ -222,6 +223,8 @@ class MCPEngine:
         try:
             content = await resource.read()
             return [ReadResourceContents(content=content, mime_type=resource.mime_type)]
+        except (AuthenticationError, AuthorizationError) as err:
+            raise err
         except Exception as e:
             logger.error(f"Error reading resource {uri}: {e}")
             raise ResourceError(str(e))
@@ -653,6 +656,8 @@ class MCPEngine:
             messages = await self._prompt_manager.render_prompt(name, arguments)
 
             return GetPromptResult(messages=pydantic_core.to_jsonable_python(messages))
+        except (AuthenticationError, AuthorizationError) as err:
+            raise err
         except Exception as e:
             logger.error(f"Error getting prompt {name}: {e}")
             raise ValueError(str(e))

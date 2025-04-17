@@ -53,7 +53,7 @@ from mcpengine.server.mcpengine.resources import (
 from mcpengine.server.mcpengine.tools import ToolManager
 from mcpengine.server.mcpengine.utilities.logging import configure_logging, get_logger
 from mcpengine.server.mcpengine.utilities.types import Image
-from mcpengine.server.session import InitializationState, ServerSession, ServerSessionT
+from mcpengine.server.session import ServerSession, ServerSessionT
 from mcpengine.server.settings import Settings
 from mcpengine.server.sse import SseServerTransport
 from mcpengine.server.stdio import stdio_server
@@ -581,24 +581,7 @@ class MCPEngine:
     def http_app(self) -> Starlette:
         """Return an instance of the HTTP server app."""
         auth_backend = get_auth_backend(self.settings, self.scopes, self.scopes_mapping)
-        transport = HttpServerTransport(auth_backend)
-
-        async def handle_http(request: Request) -> Response:
-            message, precheck_response = await transport.precheck(request.scope, request.receive)
-            if precheck_response:
-                return precheck_response
-
-            async with transport.http_server(
-                message,
-            ) as streams:
-                await self._mcp_server.run(
-                    streams[0],
-                    streams[1],
-                    self._mcp_server.create_initialization_options(),
-                    InitializationState.Initialized,
-                )
-
-                return await streams[2].receive()
+        transport = HttpServerTransport(self._mcp_server, auth_backend)
 
         async def handle_well_known(_: Request) -> Response:
             async with httpx.AsyncClient() as client:
@@ -620,7 +603,7 @@ class MCPEngine:
                 endpoint=handle_well_known,
                 methods=["GET", "OPTIONS"],
             ),
-            Route(self.settings.mcp_path, endpoint=handle_http, methods=["POST"]),
+            Route(self.settings.mcp_path, endpoint=transport.handle_http, methods=["POST"]),
         ]
 
         return Starlette(

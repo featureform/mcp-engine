@@ -581,10 +581,12 @@ class MCPEngine:
         transport = HttpServerTransport(auth_backend)
 
         async def handle_http(request: Request) -> Response:
+            message, precheck_response = await transport.precheck(request.scope, request.receive)
+            if precheck_response:
+                return precheck_response
+
             async with transport.http_server(
-                request.scope,
-                request.receive,
-                request._send,  # type: ignore[reportPrivateUsage]
+                message,
             ) as streams:
                 await self._mcp_server.run(
                     streams[0],

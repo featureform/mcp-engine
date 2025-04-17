@@ -20,7 +20,7 @@ import anyio
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
-from starlette.types import Receive, Scope, Send
+from starlette.types import Receive, Scope
 
 import mcpengine.types as types
 from mcpengine.server.auth.backend import AuthenticationBackend
@@ -41,12 +41,28 @@ class HttpServerTransport:
         self._auth_backend = auth_backend
         logger.debug("HTTP Transport Initialized")
 
-    @asynccontextmanager
-    async def http_server(self, scope: Scope, receive: Receive, send: Send):
+    async def precheck(self, scope: Scope, receive: Receive) -> (types.JSONRPCMessage, Response | None):
         if scope["type"] != "http":
             logger.error("http_server received non-HTTP request")
             raise ValueError("http_server can only handle HTTP requests")
 
+        request = Request(scope, receive)
+        body = await request.body()
+        message = types.JSONRPCMessage.model_validate_json(body)
+
+        err_response = await self.validate_auth(request, message)
+        if err_response:
+            return message, err_response
+
+        if isinstance(message.root, types.JSONRPCNotification):
+            logger.debug(f"Skipping notification message: {message}")
+            return message, Response(status_code=202)
+
+        return message, None
+
+
+    @asynccontextmanager
+    async def http_server(self, message: types.JSONRPCMessage):
         read_stream: MemoryObjectReceiveStream[
             types.JSONRPCMessage
             | Exception
@@ -68,21 +84,6 @@ class HttpServerTransport:
         result_stream_writer: MemoryObjectSendStream[Response]
 
         result_stream_writer, result_stream = anyio.create_memory_object_stream(1)
-
-        request = Request(scope, receive)
-        body = await request.body()
-        message = types.JSONRPCMessage.model_validate_json(body)
-
-        err_response = await self.validate_auth(request, message)
-        if err_response:
-            await result_stream_writer.send(err_response)
-            return
-
-        if isinstance(message.root, types.JSONRPCNotification):
-            logger.debug(f"Skipping notification message: {message}")
-            response = JSONResponse(status_code=200, content={})
-            await result_stream_writer.send(response)
-            return
 
         await read_stream_writer.send(message)
 

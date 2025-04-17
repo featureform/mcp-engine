@@ -44,7 +44,6 @@ func New(cfg Config) (*MCPEngine, error) {
 	if cfg.UseSSE {
 		sseClient = sse.NewClient(fmt.Sprintf("%s%s", cfg.Endpoint, cfg.SSEPath))
 	}
-	cfg.Logger.Debugf("SSE CLIENT %v\n", sseClient)
 	return &MCPEngine{
 		endpoint:   cfg.Endpoint,
 		inputFile:  os.Stdin,

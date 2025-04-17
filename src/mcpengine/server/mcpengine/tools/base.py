@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
+from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
 from mcpengine.server.mcpengine.exceptions import ToolError
 from mcpengine.server.mcpengine.utilities.func_metadata import (
     FuncMetadata,
@@ -102,5 +103,7 @@ class Tool(BaseModel):
                 if self.context_kwarg is not None
                 else None,
             )
+        except (AuthenticationError, AuthorizationError) as err:
+            raise err
         except Exception as e:
             raise ToolError(f"Error executing tool {self.name}: {e}") from e

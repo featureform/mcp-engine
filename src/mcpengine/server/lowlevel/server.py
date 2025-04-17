@@ -84,6 +84,7 @@ from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStre
 from pydantic import AnyUrl
 
 import mcpengine.types as types
+from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.models import InitializationOptions
 from mcpengine.server.session import ServerSession
@@ -416,6 +417,8 @@ class Server(Generic[LifespanResultT]):
                     return types.ServerResult(
                         types.CallToolResult(content=list(results), isError=False)
                     )
+                except (AuthenticationError, AuthorizationError) as err:
+                    raise err
                 except Exception as e:
                     return types.ServerResult(
                         types.CallToolResult(
@@ -562,6 +565,16 @@ class Server(Generic[LifespanResultT]):
                     )
                 )
                 response = await handler(req)
+            except AuthenticationError:
+                response = types.ErrorData(
+                    code=types.AUTHENTICATION_ERROR,
+                    message="User must be logged in"
+                )
+            except AuthorizationError:
+                response = types.ErrorData(
+                    code=types.AUTHORIZATION_ERROR,
+                    message="User does not have permission to perform this action",
+                )
             except McpError as err:
                 response = err.error
             except Exception as err:

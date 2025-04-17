@@ -247,7 +247,7 @@ func (hs *HTTPPostSender) Run(ctx context.Context) error {
 				id := getMessageID(msg, hs.logger)
 				authURL, wait, err := hs.auth.HandleAuthChallenge(ctx, resp)
 				if err != nil {
-					hs.logger.Errorf("Failed to create auth challenge")
+					hs.logger.Errorw("Failed to create auth challenge", "err", err)
 					continue
 				}
 				go func() {

@@ -501,6 +501,9 @@ class Server(Generic[LifespanResultT]):
                 async for message in session.incoming_messages:
                     logger.debug(f"Received message: {message}")
 
+                    if isinstance(message, StopAsyncIteration):
+                        return
+
                     tg.start_soon(
                         self._handle_message,
                         message,

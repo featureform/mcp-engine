@@ -97,6 +97,7 @@ def make_server_app() -> Starlette:
                 server.create_initialization_options(),
                 InitializationState.Initialized,
             )
+            return await streams[2].receive()
 
     app = Starlette(
         routes=[

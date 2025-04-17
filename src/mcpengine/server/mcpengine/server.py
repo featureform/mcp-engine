@@ -580,7 +580,7 @@ class MCPEngine:
         auth_backend = get_auth_backend(self.settings, self.scopes, self.scopes_mapping)
         transport = HttpServerTransport(auth_backend)
 
-        async def handle_http(request: Request) -> None:
+        async def handle_http(request: Request) -> Response:
             async with transport.http_server(
                 request.scope,
                 request.receive,
@@ -592,6 +592,8 @@ class MCPEngine:
                     self._mcp_server.create_initialization_options(),
                     InitializationState.Initialized,
                 )
+
+                return await streams[2].receive()
 
         async def handle_well_known(_: Request) -> Response:
             async with httpx.AsyncClient() as client:

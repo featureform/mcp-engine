@@ -47,8 +47,16 @@ class HttpServerTransport:
             logger.error("http_server received non-HTTP request")
             raise ValueError("http_server can only handle HTTP requests")
 
-        read_stream: MemoryObjectReceiveStream[types.JSONRPCMessage | Exception]
-        read_stream_writer: MemoryObjectSendStream[types.JSONRPCMessage | Exception]
+        read_stream: MemoryObjectReceiveStream[
+            types.JSONRPCMessage
+            | Exception
+            | StopAsyncIteration
+        ]
+        read_stream_writer: MemoryObjectSendStream[
+            types.JSONRPCMessage
+            | Exception
+            | StopAsyncIteration
+        ]
 
         write_stream: MemoryObjectSendStream[types.JSONRPCMessage]
         write_stream_reader: MemoryObjectReceiveStream[types.JSONRPCMessage]
@@ -56,19 +64,24 @@ class HttpServerTransport:
         read_stream_writer, read_stream = anyio.create_memory_object_stream(1)
         write_stream, write_stream_reader = anyio.create_memory_object_stream(0)
 
+        result_stream: MemoryObjectReceiveStream[Response]
+        result_stream_writer: MemoryObjectSendStream[Response]
+
+        result_stream_writer, result_stream = anyio.create_memory_object_stream(1)
+
         request = Request(scope, receive)
         body = await request.body()
         message = types.JSONRPCMessage.model_validate_json(body)
 
         err_response = await self.validate_auth(request, message)
         if err_response:
-            await err_response(scope, receive, send)
+            await result_stream_writer.send(err_response)
             return
 
         if isinstance(message.root, types.JSONRPCNotification):
             logger.debug(f"Skipping notification message: {message}")
             response = JSONResponse(status_code=200, content={})
-            await response(scope, receive, send)
+            await result_stream_writer.send(response)
             return
 
         await read_stream_writer.send(message)
@@ -92,6 +105,7 @@ class HttpServerTransport:
                     # wait until we get a response, and then we can close it.
                     # The underlying logic should be refactored, but until that happens,
                     # this is the much easier path.
+                    await read_stream_writer.send(StopAsyncIteration())
                     await read_stream_writer.aclose()
 
                     response_model = message.model_dump(
@@ -99,11 +113,11 @@ class HttpServerTransport:
                         exclude_none=True,
                     )
                     response = JSONResponse(status_code=200, content=response_model)
-                    await response(scope, receive, send)
+                    await result_stream_writer.send(response)
 
         async with anyio.create_task_group() as tg:
             tg.start_soon(http_writer)
-            yield read_stream, write_stream
+            yield read_stream, write_stream, result_stream
 
     async def validate_auth(
         self,

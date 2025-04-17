@@ -65,6 +65,7 @@ ServerRequestResponder = (
     RequestResponder[types.ClientRequest, types.ServerResult]
     | types.ClientNotification
     | Exception
+    | StopAsyncIteration
 )
 
 

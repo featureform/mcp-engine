@@ -13,6 +13,7 @@ message listing and posting capabilities.
 """
 
 import logging
+import os
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -67,10 +68,16 @@ async def app_lifespan(server: MCPEngine) -> AsyncIterator[AppContext]:
 mcp = MCPEngine(
     "smack",
     lifespan=app_lifespan,
-    authentication_enabled=True,
-    issuer_url="https://zdvpst9mfk.us-east-2.awsapprunner.com/realms/master",
+    authentication_enabled=os.environ.get("AUTH_ENABLED", "False").lower() in ('true', 't', '1'),
+    issuer_url=os.environ.get("ISSUER_URL", None),
 )
 
+#mcp = MCPEngine(
+#    "smack",
+#    lifespan=app_lifespan,
+#    authentication_enabled=True,
+#    issuer_url="http://localhost:8080/realms/master"
+#)
 
 @mcp.auth(scopes=["messages:list"])
 @mcp.tool()
@@ -163,5 +170,8 @@ finally:
     # Close the test connection
     db.close_connection()
 
-# Start the server
 handler = Mangum(mcp.http_app())
+#def main():
+#    mcp.run(transport='http')
+#if __name__ == "__main__":
+#    mcp.run(transport='http')

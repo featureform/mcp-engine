@@ -2,22 +2,24 @@
 #
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-FROM python:3.10-slim
+FROM public.ecr.aws/lambda/python:3.12
 
 # Set working directory in the container
-WORKDIR /app
+WORKDIR /var/task
 
 # Install uv and tomli for TOML parsing
 RUN pip install --no-cache-dir uv tomli==2.0.1
 
 # Copy pyproject.toml
-COPY pyproject.toml .
+COPY ./examples/servers/smack/pyproject.toml .
+
+# Copy the application code
+COPY ./examples/servers/smack .
+COPY ./src ./mcp-engine/src
+COPY pyproject.toml ./mcp-engine/pyproject.toml
 
 # Install dependencies using uv with --system flag
 RUN uv pip install --system --no-cache-dir .
-
-# Copy the application code
-COPY . .
 
 # Expose port for the server
 EXPOSE 8000
@@ -30,4 +32,4 @@ ENV DB_HOST=postgres \
     DB_PORT=5432
 
 # Command to run the web server
-CMD ["python", "-m", "mcp_smack"]
+CMD ["mcp_smack.server.handler"]

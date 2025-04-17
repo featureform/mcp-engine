@@ -13,7 +13,11 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
 ]
-dependencies = ["psycopg2-binary==2.9.9", "mcpengine[cli]>=0.1.2"]
+dependencies = [
+    "psycopg2-binary==2.9.9",
+    "mcpengine @ {root:uri}/mcp-engine/",
+    "mangum==0.19.0",
+]
 
 [project.scripts]
 mcp-smack = "mcp_smack.server:main"
@@ -21,6 +25,9 @@ mcp-smack = "mcp_smack.server:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["mcp_smack"]

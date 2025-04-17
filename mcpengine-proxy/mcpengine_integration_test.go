@@ -98,6 +98,7 @@ func TestMCPEngine_Integration(t *testing.T) {
 		endpoint:   mockServer.URL,
 		inputFile:  inputFile,
 		outputFile: outputFile,
+		useSse:     true,
 		sseClient:  sseClient,
 		httpClient: mockServer.Client(),
 		logger:     sugarLogger,

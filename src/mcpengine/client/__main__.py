@@ -1,3 +1,9 @@
+# Copyright (c) 2024 Anthropic, PBC
+# Copyright (c) 2025 Featureform, Inc.
+#
+# Licensed under the MIT License. See LICENSE file in the
+# project root for full license information.
+
 import argparse
 import logging
 import sys
@@ -11,6 +17,7 @@ import mcpengine.types as types
 from mcpengine.client.session import ClientSession
 from mcpengine.client.sse import sse_client
 from mcpengine.client.stdio import StdioServerParameters, stdio_client
+from mcpengine.client.transports.http import http_client
 from mcpengine.shared.session import RequestResponder
 from mcpengine.types import JSONRPCMessage
 
@@ -47,13 +54,20 @@ async def run_session(
         logger.info("Initialized")
 
 
-async def main(command_or_url: str, args: list[str], env: list[tuple[str, str]]):
+async def main(
+    command_or_url: str, args: list[str], env: list[tuple[str, str]], http_mode: str
+):
     env_dict = dict(env)
 
     if urlparse(command_or_url).scheme in ("http", "https"):
-        # Use SSE client for HTTP(S) URLs
-        async with sse_client(command_or_url) as streams:
-            await run_session(*streams)
+        if http_mode == "http":
+            async with http_client(command_or_url) as streams:
+                await run_session(*streams)
+        elif http_mode == "sse":
+            async with sse_client(command_or_url) as streams:
+                await run_session(*streams)
+        else:
+            raise ValueError("http_mode must be one of 'http' or 'sse'")
     else:
         # Use stdio client for commands
         server_parameters = StdioServerParameters(
@@ -76,9 +90,19 @@ def cli():
         help="Environment variables to set. Can be used multiple times.",
         default=[],
     )
+    parser.add_argument(
+        "-m",
+        "--http-mode",
+        choices=["http", "sse"],
+        default="sse",
+        help="The style of HTTP communication to use.",
+    )
 
     args = parser.parse_args()
-    anyio.run(partial(main, args.command_or_url, args.args, args.env), backend="trio")
+    anyio.run(
+        partial(main, args.command_or_url, args.args, args.env, args.http_mode),
+        backend="trio",
+    )
 
 
 if __name__ == "__main__":

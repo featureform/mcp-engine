@@ -173,8 +173,8 @@ class MCPEngine:
                     Lambda configuration.
 
         Note:
-            Requires the optional 'mangum' package to be installed.
-            Install with `pip install mangum`.
+            Requires mcpengine to be installed with the optional flag `lambda`.
+            Install with `pip install mcpengine[lambda]`.
         """
 
         try:

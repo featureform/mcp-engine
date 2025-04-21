@@ -21,7 +21,7 @@ import (
 // AuthConfig holds configuration options for AuthManager.
 // Any field that is set to its zero value will be replaced with a default:
 //   - ClientID:           ClientID to use for OAuth.
-//   - ClientSecret:       ClientSecret to use for OAuth.
+//   - ClientSecret:       ClientSecret to use for OAuth (can be empty).
 //   - ListenPort:         Port on which the auth server listens (default 8181)
 //   - CallbackPath:       HTTP path for auth callbacks (default "/callback")
 //   - OIDCConfigPath:     Path to fetch OIDC configuration (default "/.well-known/openid-configuration")
@@ -83,10 +83,9 @@ type AuthManager struct {
 	opts         *AuthConfig
 
 	server       *http.Server
-	provider     *oidc.Provider
 	oauth2Config oauth2.Config
-	verifier     *oidc.IDTokenVerifier
 
+	verifier         string
 	accessToken      string
 	tokenMutex       sync.RWMutex
 	authCompleteChan chan struct{}
@@ -159,6 +158,9 @@ func (a *AuthManager) ResetAuthAttempts() {
 // It returns the authorization URL, a waiter function that blocks until authentication completes,
 // and an error.
 func (a *AuthManager) HandleAuthChallenge(ctx context.Context, resp *http.Response) (string, func(), error) {
+	// Reset the auth channel, in case this isn't the first call.
+	a.authCompleteChan = make(chan struct{})
+
 	canAttempt, err := a.CanAttemptAuth()
 	if !canAttempt {
 		return "", nil, fmt.Errorf("authentication not attempted: %w", err)
@@ -193,13 +195,20 @@ func (a *AuthManager) HandleAuthChallenge(ctx context.Context, resp *http.Respon
 	if err := a.initOAuth2Config(ctx, scopes); err != nil {
 		return "", nil, fmt.Errorf("failed to initialize OAuth2 configuration: %w", err)
 	}
+
+	verifier := oauth2.GenerateVerifier()
+	a.verifier = verifier
+
 	if err := a.startAuthServer(ctx); err != nil {
 		return "", nil, fmt.Errorf("failed to start auth server: %w", err)
 	}
 
 	state := generateState()
-	authURL := a.oauth2Config.AuthCodeURL(state)
-	a.logger.Debugf("Started authentication flow with URL: %s", authURL)
+	authURL := a.oauth2Config.AuthCodeURL(
+		state,
+		oauth2.AccessTypeOffline,
+		oauth2.S256ChallengeOption(verifier),
+	)
 
 	// Waiter blocks until the authentication flow is complete.
 	waiter := func() {
@@ -261,12 +270,6 @@ func (a *AuthManager) initOAuth2Config(ctx context.Context, scopes []string) err
 		Scopes: scopes,
 	}
 
-	provider, err := oidc.NewProvider(ctx, a.oidcConfig.Issuer)
-	if err != nil {
-		return fmt.Errorf("failed to create OIDC provider: %w", err)
-	}
-	a.provider = provider
-	a.verifier = provider.Verifier(&oidc.Config{ClientID: a.clientID})
 	return nil
 }
 
@@ -310,7 +313,11 @@ func (a *AuthManager) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oauth2Token, err := a.oauth2Config.Exchange(ctx, code)
+	oauth2Token, err := a.oauth2Config.Exchange(
+		ctx,
+		code,
+		oauth2.VerifierOption(a.verifier),
+	)
 	if err != nil {
 		http.Error(w, "failed to exchange token: "+err.Error(), http.StatusInternalServerError)
 		return

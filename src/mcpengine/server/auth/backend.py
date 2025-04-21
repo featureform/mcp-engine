@@ -15,15 +15,12 @@ import httpx
 import jwt
 from jwt import InvalidTokenError
 from pydantic.networks import HttpUrl
-from starlette.authentication import (
-    AuthenticationError,
-)
 from starlette.requests import Request
 from starlette.responses import Response
 
 import mcpengine
 from mcpengine.server.auth.context import UserContext
-from mcpengine.server.auth.errors import AuthorizationError
+from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
 from mcpengine.server.mcpengine.utilities.logging import get_logger
 from mcpengine.types import JSONRPCMessage
 

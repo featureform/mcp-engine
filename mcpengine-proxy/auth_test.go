@@ -36,12 +36,11 @@ func TestResolveConfig(t *testing.T) {
 		{
 			name: "partial config",
 			input: &AuthConfig{
-				ClientID:     "test-client",
-				ClientSecret: "test-secret",
+				ClientID: "test-client",
 			},
 			expected: &AuthConfig{
 				ClientID:           "test-client",
-				ClientSecret:       "test-secret",
+				ClientSecret:       "",
 				ListenPort:         8181,
 				CallbackPath:       "/callback",
 				OIDCConfigPath:     "/.well-known/openid-configuration",
@@ -408,8 +407,7 @@ func TestFetchOIDCConfiguration(t *testing.T) {
 func TestInitOAuth2Config(t *testing.T) {
 	logger := zap.NewNop().Sugar()
 	auth := NewAuthManager(&AuthConfig{
-		ClientID:     "test-client",
-		ClientSecret: "test-secret",
+		ClientID: "test-client",
 	}, logger)
 
 	// Set up OIDC config
@@ -432,7 +430,7 @@ func TestInitOAuth2Config(t *testing.T) {
 		t.Errorf("Wrong client ID: %s", auth.oauth2Config.ClientID)
 	}
 
-	if auth.oauth2Config.ClientSecret != "test-secret" {
+	if auth.oauth2Config.ClientSecret != "" {
 		t.Errorf("Wrong client secret: %s", auth.oauth2Config.ClientSecret)
 	}
 
@@ -476,8 +474,7 @@ func TestHandleAuthChallenge(t *testing.T) {
 
 	logger := zap.NewNop().Sugar()
 	auth := NewAuthManager(&AuthConfig{
-		ClientID:     "test-client",
-		ClientSecret: "test-secret",
+		ClientID: "test-client",
 		// Use small values for testing
 		MaxAuthAttempts:    1,
 		AuthCooldownPeriod: 50 * time.Millisecond,

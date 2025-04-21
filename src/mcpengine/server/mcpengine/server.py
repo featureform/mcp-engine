@@ -37,6 +37,7 @@ from mcpengine.server.auth.backend import (
     OPENID_WELL_KNOWN_PATH,
     get_auth_backend,
 )
+from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
 from mcpengine.server.http import HttpServerTransport
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
@@ -52,7 +53,7 @@ from mcpengine.server.mcpengine.resources import (
 from mcpengine.server.mcpengine.tools import ToolManager
 from mcpengine.server.mcpengine.utilities.logging import configure_logging, get_logger
 from mcpengine.server.mcpengine.utilities.types import Image
-from mcpengine.server.session import InitializationState, ServerSession, ServerSessionT
+from mcpengine.server.session import ServerSession, ServerSessionT
 from mcpengine.server.settings import Settings
 from mcpengine.server.sse import SseServerTransport
 from mcpengine.server.stdio import stdio_server
@@ -155,6 +156,37 @@ class MCPEngine:
         self._mcp_server.get_prompt()(self.get_prompt)
         self._mcp_server.list_resource_templates()(self.list_resource_templates)
 
+    def get_lambda_handler(self, **kwargs: Any):
+        """
+        Returns an AWS Lambda handler function that can be used as an entrypoint.
+
+        This method creates a Mangum handler that wraps the ASGI application, allowing
+        it to respond to AWS Lambda events (like those from API Gateway or ALB).
+
+        Args:
+            **kwargs: Additional keyword arguments passed directly to the Mangum
+                    constructor. See Mangum documentation for available options
+                    (like `lifespan`, `api_gateway_base_path`, etc.)
+
+        Returns:
+            callable: A Lambda handler function that can be referenced in your AWS
+                    Lambda configuration.
+
+        Note:
+            Requires mcpengine to be installed with the optional flag `lambda`.
+            Install with `pip install mcpengine[lambda]`.
+        """
+
+        try:
+            from mangum import Mangum
+        except ImportError:
+            raise ImportError(
+                "The 'mangum' package is required to use get_lambda_handler(). "
+                "Please install it with `pip install mangum`."
+            )
+
+        return Mangum(app=self.http_app(), **kwargs)
+
     async def list_tools(self) -> list[MCPTool]:
         """List all available tools."""
         tools = self._tool_manager.list_tools()
@@ -222,6 +254,8 @@ class MCPEngine:
         try:
             content = await resource.read()
             return [ReadResourceContents(content=content, mime_type=resource.mime_type)]
+        except (AuthenticationError, AuthorizationError) as err:
+            raise err
         except Exception as e:
             logger.error(f"Error reading resource {uri}: {e}")
             raise ResourceError(str(e))
@@ -578,24 +612,7 @@ class MCPEngine:
     def http_app(self) -> Starlette:
         """Return an instance of the HTTP server app."""
         auth_backend = get_auth_backend(self.settings, self.scopes, self.scopes_mapping)
-        transport = HttpServerTransport(auth_backend)
-
-        async def handle_http(request: Request) -> Response:
-            message, precheck_response = await transport.precheck(request.scope, request.receive)
-            if precheck_response:
-                return precheck_response
-
-            async with transport.http_server(
-                message,
-            ) as streams:
-                await self._mcp_server.run(
-                    streams[0],
-                    streams[1],
-                    self._mcp_server.create_initialization_options(),
-                    InitializationState.Initialized,
-                )
-
-                return await streams[2].receive()
+        transport = HttpServerTransport(self._mcp_server, auth_backend)
 
         async def handle_well_known(_: Request) -> Response:
             async with httpx.AsyncClient() as client:
@@ -617,7 +634,9 @@ class MCPEngine:
                 endpoint=handle_well_known,
                 methods=["GET", "OPTIONS"],
             ),
-            Route(self.settings.mcp_path, endpoint=handle_http, methods=["POST"]),
+            Route(
+                self.settings.mcp_path, endpoint=transport.handle_http, methods=["POST"]
+            ),
         ]
 
         return Starlette(
@@ -653,6 +672,8 @@ class MCPEngine:
             messages = await self._prompt_manager.render_prompt(name, arguments)
 
             return GetPromptResult(messages=pydantic_core.to_jsonable_python(messages))
+        except (AuthenticationError, AuthorizationError) as err:
+            raise err
         except Exception as e:
             logger.error(f"Error getting prompt {name}: {e}")
             raise ValueError(str(e))

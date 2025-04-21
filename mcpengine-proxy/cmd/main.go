@@ -14,7 +14,7 @@ import (
 func main() {
 	host := flag.String("host", "localhost:8000", "The hostname. By default we connect to <hostname>/sse")
 	clientId := flag.String("client_id", "", "The ClientID to be used in OAuth")
-	clientSecret := flag.String("client_secret", "", "The Client Secret to be used in OAuth")
+	clientSecret := flag.String("client_secret", "", "The Client Secret to be used in OAuth (can be empty if using PKCE)")
 	mode := flag.String("mode", "sse", "The style of HTTP communication to use with the server (one of: sse, http)")
 	ssePath := flag.String("sse_path", "/sse", "The path to append to hostname for an /sse connection")
 	mcpPath := flag.String("mcp_path", "/mcp", "The path to append to hostname for non-SSE POST")

@@ -13,14 +13,12 @@ import pytest
 import uvicorn
 from pydantic import AnyUrl
 from starlette.applications import Starlette
-from starlette.requests import Request
 from starlette.routing import Route
 
 from mcpengine.client.session import ClientSession
 from mcpengine.client.transports.http import http_client
 from mcpengine.server import Server
 from mcpengine.server.http import HttpServerTransport
-from mcpengine.server.session import InitializationState
 from mcpengine.shared.exceptions import McpError
 from mcpengine.types import (
     EmptyResult,
@@ -84,24 +82,12 @@ class ServerTest(Server):
 # Test fixtures
 def make_server_app() -> Starlette:
     """Create test Starlette app with HTTP transport"""
-    http = HttpServerTransport()
     server = ServerTest()
-
-    async def handle_post(request: Request) -> None:
-        async with http.http_server(
-            request.scope, request.receive, request._send
-        ) as streams:
-            await server.run(
-                streams[0],
-                streams[1],
-                server.create_initialization_options(),
-                InitializationState.Initialized,
-            )
-            return await streams[2].receive()
+    transport = HttpServerTransport(server)
 
     app = Starlette(
         routes=[
-            Route("/mcp", endpoint=handle_post, methods=["POST"]),
+            Route("/mcp", endpoint=transport.handle_http, methods=["POST"]),
         ]
     )
 

@@ -13,6 +13,7 @@ import pydantic.json
 import pydantic_core
 from pydantic import Field, ValidationInfo
 
+from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
 from mcpengine.server.mcpengine.resources.base import Resource
 
 
@@ -68,6 +69,8 @@ class FunctionResource(Resource):
             except (TypeError, pydantic_core.PydanticSerializationError):
                 # If JSON serialization fails, try str()
                 return str(result)
+        except (AuthenticationError, AuthorizationError) as err:
+            raise err
         except Exception as e:
             raise ValueError(f"Error reading resource {self.uri}: {e}")
 

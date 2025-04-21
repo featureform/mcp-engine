@@ -1,6 +1,11 @@
 version = 1
 revision = 1
 requires-python = ">=3.10"
+resolution-markers = [
+    "python_full_version >= '3.13'",
+    "python_full_version == '3.12.*'",
+    "python_full_version < '3.12'",
+]
 
 [options]
 resolution-mode = "lowest-direct"
@@ -453,6 +458,18 @@ wheels = [
 ]
 
 [[package]]
+name = "mangum"
+version = "0.19.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/97/e0/6ee9bfa27226252a449cba12fc57d3f1c3ce661813377ab33e29245389a4/mangum-0.19.0.tar.gz", hash = "sha256:e388e7c491b7b67970f8234e46fd4a7b21ff87785848f418de08148f71cf0bd6", size = 85792 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/77/ec/dd1cae5f6b1b4a08c01de587b45e889036b2f8c06408621e0cb273909965/mangum-0.19.0-py3-none-any.whl", hash = "sha256:e500b35f495d5e68ac98bc97334896d6101523f2ee2c57ba6a61893b65266e59", size = 17083 },
+]
+
+[[package]]
 name = "markdown"
 version = "3.7"
 source = { registry = "https://pypi.org/simple" }
@@ -678,7 +695,7 @@ dev = [
 
 [[package]]
 name = "mcpengine"
-version = "0.1.2"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
@@ -696,6 +713,9 @@ dependencies = [
 cli = [
     { name = "python-dotenv" },
     { name = "typer" },
+]
+lambda = [
+    { name = "mangum" },
 ]
 rich = [
     { name = "rich" },
@@ -726,6 +746,7 @@ requires-dist = [
     { name = "anyio", specifier = ">=4.5" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "httpx-sse", specifier = ">=0.4" },
+    { name = "mangum", marker = "extra == 'lambda'", specifier = "==0.19.0" },
     { name = "pydantic", specifier = ">=2.7.2,<3.0.0" },
     { name = "pydantic-settings", specifier = ">=2.5.2" },
     { name = "pyjwt", extras = ["crypto"], specifier = "==2.10.1" },
@@ -737,7 +758,7 @@ requires-dist = [
     { name = "uvicorn", specifier = ">=0.23.1" },
     { name = "websockets", marker = "extra == 'ws'", specifier = ">=15.0.1" },
 ]
-provides-extras = ["rich", "cli", "ws"]
+provides-extras = ["lambda", "rich", "cli", "ws"]
 
 [package.metadata.requires-dev]
 dev = [

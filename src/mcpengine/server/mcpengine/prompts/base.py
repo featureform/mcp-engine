@@ -14,6 +14,7 @@ from typing import Any, Literal
 import pydantic_core
 from pydantic import BaseModel, Field, TypeAdapter, validate_call
 
+from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
 from mcpengine.types import EmbeddedResource, ImageContent, TextContent
 
 CONTENT_TYPES = TextContent | ImageContent | EmbeddedResource
@@ -174,5 +175,7 @@ class Prompt(BaseModel):
                     )
 
             return messages
+        except (AuthenticationError, AuthorizationError) as err:
+            raise err
         except Exception as e:
             raise ValueError(f"Error rendering prompt {self.name}: {e}")

@@ -156,7 +156,7 @@ class MCPEngine:
         self._mcp_server.get_prompt()(self.get_prompt)
         self._mcp_server.list_resource_templates()(self.list_resource_templates)
 
-    def get_lambda_handler(self, **kwargs: dict[str, Any]):
+    def get_lambda_handler(self, **kwargs: Any):
         """
         Returns an AWS Lambda handler function that can be used as an entrypoint.
 

@@ -16,8 +16,8 @@ jobs:
 
       - name: Install dependencies
         run: go mod download
-        working-directory: ./mcp-proxy/
+        working-directory: ./mcpengine-proxy/
 
       - name: Run tests
         run: go test -v ./...
-        working-directory: ./mcp-proxy/
+        working-directory: ./mcpengine-proxy/

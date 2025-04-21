@@ -65,6 +65,7 @@ ServerRequestResponder = (
     RequestResponder[types.ClientRequest, types.ServerResult]
     | types.ClientNotification
     | Exception
+    | StopAsyncIteration
 )
 
 
@@ -77,7 +78,7 @@ class ServerSession(
         types.ClientNotification,
     ]
 ):
-    _initialized: InitializationState = InitializationState.NotInitialized
+    _initialization_state: InitializationState = InitializationState.NotInitialized
     _client_params: types.InitializeRequestParams | None = None
 
     def __init__(
@@ -85,11 +86,12 @@ class ServerSession(
         read_stream: MemoryObjectReceiveStream[types.JSONRPCMessage | Exception],
         write_stream: MemoryObjectSendStream[types.JSONRPCMessage],
         init_options: InitializationOptions,
+        init_state: InitializationState | None = None,
     ) -> None:
         super().__init__(
             read_stream, write_stream, types.ClientRequest, types.ClientNotification
         )
-        self._initialization_state = InitializationState.NotInitialized
+        self._initialization_state = init_state or InitializationState.NotInitialized
         self._init_options = init_options
         self._incoming_message_stream_writer, self._incoming_message_stream_reader = (
             anyio.create_memory_object_stream[ServerRequestResponder](0)

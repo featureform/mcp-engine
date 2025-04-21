@@ -168,7 +168,11 @@ func (a *AuthManager) HandleAuthChallenge(ctx context.Context, resp *http.Respon
 
 	wwwAuth := resp.Header.Get("WWW-Authenticate")
 	if wwwAuth == "" {
-		return "", nil, fmt.Errorf("no WWW-Authenticate header in 401 response")
+		// Amazon remaps certain headers for security reasons. This is one of those headers.
+		wwwAuth = resp.Header.Get("X-Amzn-Remapped-Www-Authenticate")
+		if wwwAuth == "" {
+			return "", nil, fmt.Errorf("no WWW-Authenticate header in 401 response")
+		}
 	}
 	a.logger.Debugf("Received WWW-Authenticate header: %s", wwwAuth)
 

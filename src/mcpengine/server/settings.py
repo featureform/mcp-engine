@@ -38,8 +38,13 @@ class Settings(BaseSettings, Generic[LifespanResultT]):
     # HTTP settings
     host: str = "0.0.0.0"
     port: int = 8000
+
+    # Used for the SSE handling in 2024-11-05 version.
     sse_path: str = "/sse"
     message_path: str = "/messages/"
+
+    # Used for the single HTTP endpoint path in 2025-03-26 version.
+    mcp_path: str = "/mcp"
 
     # resource settings
     warn_on_duplicate_resources: bool = True

@@ -35,6 +35,7 @@ async def test_tool_errors():
         base_error = errinfo.value.error
         assert base_error.code == AUTHORIZATION_ERROR
 
+
 @pytest.mark.anyio
 async def test_resource_errors():
     mcp = MCPEngine()
@@ -70,7 +71,6 @@ async def test_resource_errors():
             await client.read_resource(AnyUrl("resource://authz_error"))
         base_error = errinfo.value.error
         assert base_error.code == AUTHORIZATION_ERROR
-
 
 
 @pytest.mark.anyio

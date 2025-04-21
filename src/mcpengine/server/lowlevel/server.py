@@ -87,7 +87,7 @@ import mcpengine.types as types
 from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.models import InitializationOptions
-from mcpengine.server.session import ServerSession
+from mcpengine.server.session import InitializationState, ServerSession
 from mcpengine.shared.context import RequestContext
 from mcpengine.shared.exceptions import McpError
 from mcpengine.shared.session import RequestResponder
@@ -482,6 +482,7 @@ class Server(Generic[LifespanResultT]):
         read_stream: MemoryObjectReceiveStream[types.JSONRPCMessage | Exception],
         write_stream: MemoryObjectSendStream[types.JSONRPCMessage],
         initialization_options: InitializationOptions,
+        init_state: InitializationState | None = None,
         # When False, exceptions are returned as messages to the client.
         # When True, exceptions are raised, which will cause the server to shut down
         # but also make tracing exceptions much easier during testing and when using
@@ -491,12 +492,20 @@ class Server(Generic[LifespanResultT]):
         async with AsyncExitStack() as stack:
             lifespan_context = await stack.enter_async_context(self.lifespan(self))
             session = await stack.enter_async_context(
-                ServerSession(read_stream, write_stream, initialization_options)
+                ServerSession(
+                    read_stream,
+                    write_stream,
+                    initialization_options,
+                    init_state,
+                )
             )
 
             async with anyio.create_task_group() as tg:
                 async for message in session.incoming_messages:
                     logger.debug(f"Received message: {message}")
+
+                    if isinstance(message, StopAsyncIteration):
+                        return
 
                     tg.start_soon(
                         self._handle_message,
@@ -567,8 +576,7 @@ class Server(Generic[LifespanResultT]):
                 response = await handler(req)
             except AuthenticationError:
                 response = types.ErrorData(
-                    code=types.AUTHENTICATION_ERROR,
-                    message="User must be logged in"
+                    code=types.AUTHENTICATION_ERROR, message="User must be logged in"
                 )
             except AuthorizationError:
                 response = types.ErrorData(

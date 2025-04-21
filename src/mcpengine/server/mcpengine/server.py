@@ -38,6 +38,7 @@ from mcpengine.server.auth.backend import (
     get_auth_backend,
 )
 from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
+from mcpengine.server.http import HttpServerTransport
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
 from mcpengine.server.lowlevel.server import Server as MCPServer
@@ -128,20 +129,22 @@ class MCPEngine:
     def instructions(self) -> str | None:
         return self._mcp_server.instructions
 
-    def run(self, transport: Literal["stdio", "sse"] = "stdio") -> None:
+    def run(self, transport: Literal["stdio", "sse", "http"] = "stdio") -> None:
         """Run the MCPEngine server. Note this is a synchronous function.
 
         Args:
             transport: Transport protocol to use ("stdio" or "sse")
         """
-        TRANSPORTS = Literal["stdio", "sse"]
+        TRANSPORTS = Literal["stdio", "sse", "http"]
         if transport not in TRANSPORTS.__args__:  # type: ignore
             raise ValueError(f"Unknown transport: {transport}")
 
         if transport == "stdio":
             anyio.run(self.run_stdio_async)
-        else:  # transport == "sse"
+        elif transport == "sse":
             anyio.run(self.run_sse_async)
+        else:  # transport == "http"
+            anyio.run(self.run_http_async)
 
     def _setup_handlers(self) -> None:
         """Set up core MCP protocol handlers."""
@@ -152,6 +155,37 @@ class MCPEngine:
         self._mcp_server.list_prompts()(self.list_prompts)
         self._mcp_server.get_prompt()(self.get_prompt)
         self._mcp_server.list_resource_templates()(self.list_resource_templates)
+
+    def get_lambda_handler(self, **kwargs: Any):
+        """
+        Returns an AWS Lambda handler function that can be used as an entrypoint.
+
+        This method creates a Mangum handler that wraps the ASGI application, allowing
+        it to respond to AWS Lambda events (like those from API Gateway or ALB).
+
+        Args:
+            **kwargs: Additional keyword arguments passed directly to the Mangum
+                    constructor. See Mangum documentation for available options
+                    (like `lifespan`, `api_gateway_base_path`, etc.)
+
+        Returns:
+            callable: A Lambda handler function that can be referenced in your AWS
+                    Lambda configuration.
+
+        Note:
+            Requires mcpengine to be installed with the optional flag `lambda`.
+            Install with `pip install mcpengine[lambda]`.
+        """
+
+        try:
+            from mangum import Mangum
+        except ImportError:
+            raise ImportError(
+                "The 'mangum' package is required to use get_lambda_handler(). "
+                "Please install it with `pip install mcpengine[lambda]`."
+            )
+
+        return Mangum(app=self.http_app(), **kwargs)
 
     async def list_tools(self) -> list[MCPTool]:
         """List all available tools."""
@@ -507,18 +541,20 @@ class MCPEngine:
                 self._mcp_server.create_initialization_options(),
             )
 
-    async def run_sse_async(self) -> None:
-        """Run the server using SSE transport."""
-        starlette_app = self.sse_app()
-
+    async def run_starlette_app(self, app: Starlette) -> None:
         config = uvicorn.Config(
-            starlette_app,
+            app,
             host=self.settings.host,
             port=self.settings.port,
             log_level=self.settings.log_level.lower(),
         )
         server = uvicorn.Server(config)
         await server.serve()
+
+    async def run_sse_async(self) -> None:
+        """Run the server using SSE transport."""
+        starlette_app = self.sse_app()
+        await self.run_starlette_app(starlette_app)
 
     def sse_app(self) -> Starlette:
         """Return an instance of the SSE server app."""
@@ -560,6 +596,47 @@ class MCPEngine:
             ),
             Route(self.settings.sse_path, endpoint=handle_sse),
             Mount(self.settings.message_path, app=sse.handle_post_message),
+        ]
+
+        return Starlette(
+            debug=self.settings.debug,
+            middleware=middleware,
+            routes=routes,
+        )
+
+    async def run_http_async(self) -> None:
+        """Run the server using regular HTTP transport."""
+        starlette_app = self.http_app()
+        await self.run_starlette_app(starlette_app)
+
+    def http_app(self) -> Starlette:
+        """Return an instance of the HTTP server app."""
+        auth_backend = get_auth_backend(self.settings, self.scopes, self.scopes_mapping)
+        transport = HttpServerTransport(self._mcp_server, auth_backend)
+
+        async def handle_well_known(_: Request) -> Response:
+            async with httpx.AsyncClient() as client:
+                issuer_url = str(self.settings.issuer_url).rstrip("/") + "/"
+                well_known_url = urljoin(issuer_url, OPENID_WELL_KNOWN_PATH)
+                response = await client.get(well_known_url)
+                return JSONResponse(response.json())
+
+        middleware: Sequence[Middleware] = []
+
+        routes = [
+            Route(
+                f"/{OAUTH_WELL_KNOWN_PATH}",
+                endpoint=handle_well_known,
+                methods=["GET", "OPTIONS"],
+            ),
+            Route(
+                f"/{OPENID_WELL_KNOWN_PATH}",
+                endpoint=handle_well_known,
+                methods=["GET", "OPTIONS"],
+            ),
+            Route(
+                self.settings.mcp_path, endpoint=transport.handle_http, methods=["POST"]
+            ),
         ]
 
         return Starlette(
@@ -721,9 +798,9 @@ class Context(BaseModel, Generic[ServerSessionT, LifespanContextT]):
         Returns:
             The resource content as either text or bytes
         """
-        assert self._mcpengine is not None, (
-            "Context is not available outside of a request"
-        )
+        assert (
+            self._mcpengine is not None
+        ), "Context is not available outside of a request"
         return await self._mcpengine.read_resource(uri)
 
     async def log(

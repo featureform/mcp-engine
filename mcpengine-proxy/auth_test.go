@@ -36,12 +36,10 @@ func TestResolveConfig(t *testing.T) {
 		{
 			name: "partial config",
 			input: &AuthConfig{
-				ClientID:     "test-client",
-				ClientSecret: "test-secret",
+				ClientID: "test-client",
 			},
 			expected: &AuthConfig{
 				ClientID:           "test-client",
-				ClientSecret:       "test-secret",
 				ListenPort:         8181,
 				CallbackPath:       "/callback",
 				OIDCConfigPath:     "/.well-known/openid-configuration",
@@ -53,7 +51,6 @@ func TestResolveConfig(t *testing.T) {
 			name: "complete custom config",
 			input: &AuthConfig{
 				ClientID:           "test-client",
-				ClientSecret:       "test-secret",
 				ListenPort:         9000,
 				CallbackPath:       "/custom-callback",
 				OIDCConfigPath:     "/custom-config",
@@ -62,7 +59,6 @@ func TestResolveConfig(t *testing.T) {
 			},
 			expected: &AuthConfig{
 				ClientID:           "test-client",
-				ClientSecret:       "test-secret",
 				ListenPort:         9000,
 				CallbackPath:       "/custom-callback",
 				OIDCConfigPath:     "/custom-config",
@@ -96,27 +92,18 @@ func TestNewAuthManager(t *testing.T) {
 		if auth.redirectURL != "http://localhost:8181/callback" {
 			t.Errorf("Expected redirectURL to be http://localhost:8181/callback, got %s", auth.redirectURL)
 		}
-
-		if auth.clientID != "" || auth.clientSecret != "" {
-			t.Errorf("Expected empty clientID/secret, got %s/%s", auth.clientID, auth.clientSecret)
-		}
 	})
 
 	t.Run("with custom config", func(t *testing.T) {
 		config := &AuthConfig{
-			ClientID:     "client-123",
-			ClientSecret: "secret-456",
-			ListenPort:   9999,
+			ClientID:   "client-123",
+			ListenPort: 9999,
 		}
 
 		auth := NewAuthManager(config, logger)
 
 		if auth.clientID != "client-123" {
 			t.Errorf("Expected clientID to be client-123, got %s", auth.clientID)
-		}
-
-		if auth.clientSecret != "secret-456" {
-			t.Errorf("Expected clientSecret to be secret-456, got %s", auth.clientSecret)
 		}
 
 		if auth.redirectURL != "http://localhost:9999/callback" {
@@ -408,8 +395,7 @@ func TestFetchOIDCConfiguration(t *testing.T) {
 func TestInitOAuth2Config(t *testing.T) {
 	logger := zap.NewNop().Sugar()
 	auth := NewAuthManager(&AuthConfig{
-		ClientID:     "test-client",
-		ClientSecret: "test-secret",
+		ClientID: "test-client",
 	}, logger)
 
 	// Set up OIDC config
@@ -430,10 +416,6 @@ func TestInitOAuth2Config(t *testing.T) {
 
 	if auth.oauth2Config.ClientID != "test-client" {
 		t.Errorf("Wrong client ID: %s", auth.oauth2Config.ClientID)
-	}
-
-	if auth.oauth2Config.ClientSecret != "test-secret" {
-		t.Errorf("Wrong client secret: %s", auth.oauth2Config.ClientSecret)
 	}
 
 	if auth.oauth2Config.RedirectURL != "http://localhost:8181/callback" {
@@ -476,8 +458,7 @@ func TestHandleAuthChallenge(t *testing.T) {
 
 	logger := zap.NewNop().Sugar()
 	auth := NewAuthManager(&AuthConfig{
-		ClientID:     "test-client",
-		ClientSecret: "test-secret",
+		ClientID: "test-client",
 		// Use small values for testing
 		MaxAuthAttempts:    1,
 		AuthCooldownPeriod: 50 * time.Millisecond,

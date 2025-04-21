@@ -576,8 +576,7 @@ class Server(Generic[LifespanResultT]):
                 response = await handler(req)
             except AuthenticationError:
                 response = types.ErrorData(
-                    code=types.AUTHENTICATION_ERROR,
-                    message="User must be logged in"
+                    code=types.AUTHENTICATION_ERROR, message="User must be logged in"
                 )
             except AuthorizationError:
                 response = types.ErrorData(

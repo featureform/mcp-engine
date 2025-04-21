@@ -603,7 +603,9 @@ class MCPEngine:
                 endpoint=handle_well_known,
                 methods=["GET", "OPTIONS"],
             ),
-            Route(self.settings.mcp_path, endpoint=transport.handle_http, methods=["POST"]),
+            Route(
+                self.settings.mcp_path, endpoint=transport.handle_http, methods=["POST"]
+            ),
         ]
 
         return Starlette(

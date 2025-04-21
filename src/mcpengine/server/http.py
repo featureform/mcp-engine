@@ -36,24 +36,24 @@ class HttpServerTransport:
     suitable to be used with a framework like Starlette and a server like Hypercorn:
     """
 
-    _server: Server
+    _server: Server[object]
     _auth_backend: AuthenticationBackend | None
 
-    def __init__(self, server: Server, auth_backend: AuthenticationBackend | None = None) -> None:
+    def __init__(
+        self, server: Server[object], auth_backend: AuthenticationBackend | None = None
+    ) -> None:
         super().__init__()
         self._server = server
         self._auth_backend = auth_backend
         logger.debug("HTTP Transport Initialized")
 
     async def handle_http(self, request: Request) -> Response:
-        message, precheck_response = await self.precheck(
-            request.scope, request.receive
-        )
+        message, precheck_response = await self.precheck(request.scope, request.receive)
         if precheck_response:
             return precheck_response
 
         async with self.http_server(
-                message,
+            message,
         ) as streams:
             await self._server.run(
                 streams[0],
@@ -64,7 +64,9 @@ class HttpServerTransport:
 
             return await streams[2].receive()
 
-    async def precheck(self, scope: Scope, receive: Receive) -> (types.JSONRPCMessage, Response | None):
+    async def precheck(
+        self, scope: Scope, receive: Receive
+    ) -> tuple[types.JSONRPCMessage, Response | None]:
         if scope["type"] != "http":
             logger.error("http_server received non-HTTP request")
             raise ValueError("http_server can only handle HTTP requests")
@@ -83,18 +85,13 @@ class HttpServerTransport:
 
         return message, None
 
-
     @asynccontextmanager
     async def http_server(self, message: types.JSONRPCMessage):
         read_stream: MemoryObjectReceiveStream[
-            types.JSONRPCMessage
-            | Exception
-            | StopAsyncIteration
+            types.JSONRPCMessage | Exception | StopAsyncIteration
         ]
         read_stream_writer: MemoryObjectSendStream[
-            types.JSONRPCMessage
-            | Exception
-            | StopAsyncIteration
+            types.JSONRPCMessage | Exception | StopAsyncIteration
         ]
 
         write_stream: MemoryObjectSendStream[types.JSONRPCMessage]

@@ -158,6 +158,9 @@ func (a *AuthManager) ResetAuthAttempts() {
 // It returns the authorization URL, a waiter function that blocks until authentication completes,
 // and an error.
 func (a *AuthManager) HandleAuthChallenge(ctx context.Context, resp *http.Response) (string, func(), error) {
+	// Reset the auth channel, in case this isn't the first call.
+	a.authCompleteChan = make(chan struct{})
+
 	canAttempt, err := a.CanAttemptAuth()
 	if !canAttempt {
 		return "", nil, fmt.Errorf("authentication not attempted: %w", err)

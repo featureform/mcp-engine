@@ -156,6 +156,37 @@ class MCPEngine:
         self._mcp_server.get_prompt()(self.get_prompt)
         self._mcp_server.list_resource_templates()(self.list_resource_templates)
 
+    def get_lambda_handler(self, **kwargs: dict[str, Any]):
+        """
+        Returns an AWS Lambda handler function that can be used as an entrypoint.
+
+        This method creates a Mangum handler that wraps the ASGI application, allowing
+        it to respond to AWS Lambda events (like those from API Gateway or ALB).
+
+        Args:
+            **kwargs: Additional keyword arguments passed directly to the Mangum
+                    constructor. See Mangum documentation for available options
+                    (like `lifespan`, `api_gateway_base_path`, etc.)
+
+        Returns:
+            callable: A Lambda handler function that can be referenced in your AWS
+                    Lambda configuration.
+
+        Note:
+            Requires the optional 'mangum' package to be installed.
+            Install with `pip install mangum`.
+        """
+
+        try:
+            from mangum import Mangum
+        except ImportError:
+            raise ImportError(
+                "The 'mangum' package is required to use get_lambda_handler(). "
+                "Please install it with `pip install mangum`."
+            )
+
+        return Mangum(app=self.http_app(), **kwargs)
+
     async def list_tools(self) -> list[MCPTool]:
         """List all available tools."""
         tools = self._tool_manager.list_tools()

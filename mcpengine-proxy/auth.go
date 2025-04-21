@@ -21,6 +21,7 @@ import (
 // AuthConfig holds configuration options for AuthManager.
 // Any field that is set to its zero value will be replaced with a default:
 //   - ClientID:           ClientID to use for OAuth.
+//   - ClientSecret:       ClientSecret to use for OAuth (can be empty).
 //   - ListenPort:         Port on which the auth server listens (default 8181)
 //   - CallbackPath:       HTTP path for auth callbacks (default "/callback")
 //   - OIDCConfigPath:     Path to fetch OIDC configuration (default "/.well-known/openid-configuration")
@@ -28,6 +29,7 @@ import (
 //   - AuthCooldownPeriod: Cooldown period between auth attempts (default 15 seconds)
 type AuthConfig struct {
 	ClientID           string
+	ClientSecret       string
 	ListenPort         int
 	CallbackPath       string
 	OIDCConfigPath     string
@@ -75,9 +77,10 @@ type OpenIDConfiguration struct {
 
 // AuthManager handles the OpenID Connect authentication flow.
 type AuthManager struct {
-	redirectURL string
-	clientID    string
-	opts        *AuthConfig
+	redirectURL  string
+	clientID     string
+	clientSecret string
+	opts         *AuthConfig
 
 	server       *http.Server
 	oauth2Config oauth2.Config
@@ -106,6 +109,7 @@ func NewAuthManager(cfg *AuthConfig, logger *zap.SugaredLogger) *AuthManager {
 	redirectURL := fmt.Sprintf("http://localhost:%d%s", cfg.ListenPort, cfg.CallbackPath)
 	return &AuthManager{
 		clientID:         cfg.ClientID,
+		clientSecret:     cfg.ClientSecret,
 		redirectURL:      redirectURL,
 		opts:             cfg,
 		authCompleteChan: make(chan struct{}),
@@ -250,7 +254,7 @@ func (a *AuthManager) fetchOIDCConfiguration(ctx context.Context) error {
 func (a *AuthManager) initOAuth2Config(ctx context.Context, scopes []string) error {
 	a.oauth2Config = oauth2.Config{
 		ClientID:     a.clientID,
-		ClientSecret: "", // Intentionally empty, since we have public clients, and are using PKCE.
+		ClientSecret: a.clientSecret,
 		RedirectURL:  a.redirectURL,
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  a.oidcConfig.AuthorizationEndpoint,
@@ -301,8 +305,6 @@ func (a *AuthManager) handleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing code in request", http.StatusBadRequest)
 		return
 	}
-
-	a.logger.Debugw("Received callback", "code", code, "verifier", a.verifier)
 
 	oauth2Token, err := a.oauth2Config.Exchange(
 		ctx,

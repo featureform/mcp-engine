@@ -71,3 +71,12 @@ aws lambda update-function-code \
     --function-name weather \
     --image-uri ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-2.amazonaws.com/mcp/weather:latest
 ```
+
+### New way of tagging and pushing
+
+// This is not used
+`export REPOSITORY_URL=$(terraform output image_tag)`
+
+`docker tag mcp/weather:latest $(terraform output -raw image_tag)`
+`docker push $(terraform output -raw image_tag)`
+`aws lambda update-function-code --function-name $(terraform output -raw lambda_name) --image-uri $(terraform output -raw image_tag)`

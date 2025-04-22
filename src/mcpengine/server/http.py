@@ -117,7 +117,9 @@ class HttpServerTransport:
                     if isinstance(message.root, types.JSONRPCNotification):
                         continue
 
-                    # TODO: We close read_stream_writer here because the underlying
+                    # TODO: These readers should ideally be closed outside of
+                    # this writer, after we send the messages down the stream.
+                    # However, we close read_stream_writer here because the underlying
                     # session logic ties the read_stream and write_stream together,
                     # and closes the both of them when one is closed. Thus, the way that
                     # session management is written, if we were to send the request and

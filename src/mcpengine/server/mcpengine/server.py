@@ -182,7 +182,7 @@ class MCPEngine:
         except ImportError:
             raise ImportError(
                 "The 'mangum' package is required to use get_lambda_handler(). "
-                "Please install it with `pip install mangum`."
+                "Please install it with `pip install mcpengine[lambda]`."
             )
 
         return Mangum(app=self.http_app(), **kwargs)

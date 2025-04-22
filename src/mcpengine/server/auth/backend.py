@@ -139,8 +139,10 @@ class BearerTokenBackend(AuthenticationBackend):
         return decoded_token
 
     def _validate_scopes(self, message: mcpengine.JSONRPCRequest, decoded_token: Any):
-        scopes = decoded_token.get("scope", set())
-        if scopes != "":
+        scopes = decoded_token.get("scope", None)
+        if scopes is None:
+            scopes = set()
+        else:
             scopes = set(scopes.split(" "))
 
         needed_scopes: set[str] = set()

@@ -473,61 +473,52 @@ def install(
         logger.error(f"Failed to install {name} in Claude app")
         sys.exit(1)
 
+
 class TransportMode(str, Enum):
     http = "http"
     sse = "sse"
 
+
 @app.command()
 def proxy(
-        name: Annotated[
-            str,
-            typer.Argument(
-                help="The name to associate with the MCP server."
-            )
-        ],
-        host_endpoint: Annotated[
-            str,
-            typer.Argument(
-                help="The endpoint of the running MCP server.",
-            ),
-        ],
-        mode: Annotated[
-            TransportMode,
-            typer.Option(
-                "--mode",
-                "-m",
-                help="The transport mode of the MCP server."
-            )
-        ] = TransportMode.sse,
-        client_id: Annotated[
-            str | None,
-            typer.Option(
-                "--client-id",
-                help="The client id of the IdP used by the MCP server.",
-            )
-        ] = None,
-        client_secret: Annotated[
-            str | None,
-            typer.Option(
-                "--client-secret",
-                help="The client secret of the IdP used by the MCP server.",
-            )
-        ] = None,
-        debug: Annotated[
-            bool,
-            typer.Option(
-                "--debug",
-                "-d",
-                help="Enable debug mode for more verbose logs.",
-            ),
-        ] = False,
-        install_claude: Annotated[
-            bool,
-            typer.Option(
-                "--claude",
-                help="Add the installation to Claude config."
-            )
-        ] = False,
+    name: Annotated[
+        str, typer.Argument(help="The name to associate with the MCP server.")
+    ],
+    host_endpoint: Annotated[
+        str,
+        typer.Argument(
+            help="The endpoint of the running MCP server.",
+        ),
+    ],
+    mode: Annotated[
+        TransportMode,
+        typer.Option("--mode", "-m", help="The transport mode of the MCP server."),
+    ] = TransportMode.sse,
+    client_id: Annotated[
+        str | None,
+        typer.Option(
+            "--client-id",
+            help="The client id of the IdP used by the MCP server.",
+        ),
+    ] = None,
+    client_secret: Annotated[
+        str | None,
+        typer.Option(
+            "--client-secret",
+            help="The client secret of the IdP used by the MCP server.",
+        ),
+    ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            "-d",
+            help="Enable debug mode for more verbose logs.",
+        ),
+    ] = False,
+    install_claude: Annotated[
+        bool, typer.Option("--claude", help="Add the installation to Claude config.")
+    ] = False,
 ) -> None:
     """Install a proxy to an MCP server.
 
@@ -537,13 +528,13 @@ def proxy(
     logger.debug(
         "Installing server",
         extra={
-        "server_name": name,
-        "host_endpoint": host_endpoint,
-        "mode": mode.value,
-        "client_id": client_id,
-        "client_secret": "*" * len(client_secret),
-        "debug": debug,
-    },
+            "server_name": name,
+            "host_endpoint": host_endpoint,
+            "mode": mode.value,
+            "client_id": client_id,
+            "client_secret": "*" * len(client_secret) if client_secret else None,
+            "debug": debug,
+        },
     )
 
     client = docker.from_env()

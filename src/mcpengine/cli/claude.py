@@ -31,6 +31,7 @@ def get_claude_config_path() -> Path | None:
         return path
     return None
 
+
 def _update_server_config(
     name: str,
     entry: dict[str, Any],
@@ -64,10 +65,7 @@ def _update_server_config(
             config["mcpServers"] = {}
 
         # Always preserve existing env vars and merge with new ones
-        if (
-                name in config["mcpServers"]
-                and "env" in config["mcpServers"][name]
-        ):
+        if name in config["mcpServers"] and "env" in config["mcpServers"][name]:
             existing_env = config["mcpServers"][name]["env"]
             if env_vars:
                 # New vars take precedence over existing ones
@@ -93,14 +91,15 @@ def _update_server_config(
         )
         return False
 
+
 def install_proxy(
-        name: str,
-        host_endpoint: str,
-        *,
-        mode: str | None = None,
-        client_id: str | None = None,
-        client_secret: str | None = None,
-        debug: bool = False,
+    name: str,
+    host_endpoint: str,
+    *,
+    mode: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+    debug: bool = False,
 ):
     if not get_claude_config_path():
         logger.error("Claude app not found")

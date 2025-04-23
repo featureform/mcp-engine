@@ -19,7 +19,6 @@ def mock_bearer_token_backend():
             scopes_mapping=scopes_mapping,
         )
 
-        backend._get_jwks = AsyncMock(return_value=None)
         backend._decode_token = AsyncMock(return_value=token)
 
         return backend

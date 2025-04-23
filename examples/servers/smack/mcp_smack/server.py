@@ -174,3 +174,5 @@ def main():
         return 1
 
     return 0
+
+handler = mcp.get_lambda_handler()

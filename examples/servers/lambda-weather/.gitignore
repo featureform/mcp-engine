@@ -1,0 +1,35 @@
+For a Terraform project, you'll want to ignore several types of files to keep your repository clean and secure. Here's what I'd recommend adding to your .gitignore file:
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files, which might contain sensitive data
+*.tfvars
+*.tfvars.json
+
+# Ignore override files as they're usually used for local development
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+# Ignore lock files - optional, some teams prefer to version these
+# .terraform.lock.hcl
+
+# Ignore plan output files
+tfplan
+*.tfplan
+
+# Ignore sensitive variable files
+*.auto.tfvars

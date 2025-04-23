@@ -65,9 +65,9 @@ class MessageDB:
                 else:
                     # Fallback to individual parameters with secure defaults
                     self.db_host = os.environ.get("DB_HOST", "localhost")
-                    self.db_name = os.environ.get("DB_NAME", "postgres")
+                    self.db_name = os.environ.get("DB_NAME", "smack")
                     self.db_user = os.environ.get("DB_USER", "postgres")
-                    self.db_password = os.environ.get("DB_PASSWORD", "password")
+                    self.db_password = os.environ.get("DB_PASSWORD", "")
                     self.db_port = os.environ.get("DB_PORT", "5432")
 
                     self._connection_pool = pool.ThreadedConnectionPool(

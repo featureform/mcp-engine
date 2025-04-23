@@ -1,9 +1,9 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pydantic import HttpUrl
 
 from mcpengine.server.auth.backend import BearerTokenBackend
+from mcpengine.server.auth.providers.config import IdpConfig
 from mcpengine.server.sse import SseServerTransport
 from mcpengine.types import JSONRPCRequest
 
@@ -12,16 +12,15 @@ from mcpengine.types import JSONRPCRequest
 def mock_bearer_token_backend():
     def _create_mock(application_scopes, scopes_mapping, token):
         backend = BearerTokenBackend(
-            issuer_url=HttpUrl("http://some-issuer"),
+            idp_config=IdpConfig(
+                issuer_url="http://some-issuer",
+            ),
             scopes=application_scopes,
             scopes_mapping=scopes_mapping,
         )
 
         backend._get_jwks = AsyncMock(return_value=None)
-
-        validate_token_mock = MagicMock()
-        validate_token_mock.return_value = token
-        backend.validate_token = validate_token_mock
+        backend._decode_token = AsyncMock(return_value=token)
 
         return backend
 

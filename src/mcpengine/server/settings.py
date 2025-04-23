@@ -12,9 +12,10 @@ from contextlib import (
 )
 from typing import Any, Generic, Literal
 
-from pydantic import Field, HttpUrl
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from mcpengine.server.auth.providers.config import IdpConfig
 from mcpengine.server.lowlevel.server import LifespanResultT
 
 
@@ -65,9 +66,6 @@ class Settings(BaseSettings, Generic[LifespanResultT]):
     )
 
     # auth settings
-    authentication_enabled: bool = Field(
-        False, description="Enable authentication and authorization for the application"
-    )
-    issuer_url: HttpUrl | None = Field(
-        None, description="Url of the issuer, which will be used as the root url"
+    idp_config: IdpConfig | None = Field(
+        None, description="Configuration for an OAuth2 or OIDC provider"
     )

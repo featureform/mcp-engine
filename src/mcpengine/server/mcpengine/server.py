@@ -33,11 +33,13 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Mount, Route
 
 from mcpengine.server.auth.backend import (
-    OAUTH_WELL_KNOWN_PATH,
-    OPENID_WELL_KNOWN_PATH,
     get_auth_backend,
 )
 from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
+from mcpengine.server.auth.providers.config import (
+    OAUTH_WELL_KNOWN_PATH,
+    OPENID_WELL_KNOWN_PATH,
+)
 from mcpengine.server.http import HttpServerTransport
 from mcpengine.server.lowlevel.helper_types import ReadResourceContents
 from mcpengine.server.lowlevel.server import LifespanResultT
@@ -273,6 +275,12 @@ class MCPEngine:
             raise TypeError(
                 "The @authorize decorator was used incorrectly. "
                 "Did you forget to call it? Use @authorize() instead of @tool"
+            )
+
+        if self.settings.idp_config is None:
+            raise ValueError(
+                "In order to enable authentication, you must configure mcp with "
+                "IdP configuration. See idp_config for more details."
             )
 
         def decorator(fn: AnyFunction) -> AnyFunction:
@@ -576,7 +584,7 @@ class MCPEngine:
 
         async def handle_well_known(_: Request) -> Response:
             async with httpx.AsyncClient() as client:
-                issuer_url = str(self.settings.issuer_url).rstrip("/") + "/"
+                issuer_url = str(self.settings.idp_config.issuer_url).rstrip("/") + "/"
                 well_known_url = urljoin(issuer_url, OPENID_WELL_KNOWN_PATH)
                 response = await client.get(well_known_url)
                 return JSONResponse(response.json())
@@ -616,7 +624,7 @@ class MCPEngine:
 
         async def handle_well_known(_: Request) -> Response:
             async with httpx.AsyncClient() as client:
-                issuer_url = str(self.settings.issuer_url).rstrip("/") + "/"
+                issuer_url = str(self.settings.idp_config.issuer_url).rstrip("/") + "/"
                 well_known_url = urljoin(issuer_url, OPENID_WELL_KNOWN_PATH)
                 response = await client.get(well_known_url)
                 return JSONResponse(response.json())

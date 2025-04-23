@@ -9,36 +9,31 @@ from __future__ import annotations as _annotations
 
 import json
 from typing import Any, Protocol
-from urllib.parse import urljoin
 
-import httpx
 import jwt
 from jwt import InvalidTokenError
-from pydantic.networks import HttpUrl
 from starlette.requests import Request
 from starlette.responses import Response
 
 import mcpengine
 from mcpengine.server.auth.context import UserContext
 from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
+from mcpengine.server.auth.providers.config import IdpConfig
 from mcpengine.server.mcpengine.utilities.logging import get_logger
 from mcpengine.types import JSONRPCMessage
 
 logger = get_logger(__name__)
-
-OPENID_WELL_KNOWN_PATH: str = ".well-known/openid-configuration"
-OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
 
 # TODO: Not Any
 def get_auth_backend(
     settings: Any, scopes: set[str], scopes_mapping: dict[str, set[str]]
 ) -> AuthenticationBackend:
-    if not settings.authentication_enabled:
+    if not settings.idp_config:
         return NoAuthBackend()
 
     return BearerTokenBackend(
-        issuer_url=settings.issuer_url,
+        idp_config=settings.idp_config,
         scopes_mapping=scopes_mapping,
         scopes=scopes,
     )
@@ -78,19 +73,31 @@ class BearerTokenBackend(AuthenticationBackend):
         "prompts/get",
     }
 
-    issuer_url: HttpUrl
+    idp_config: IdpConfig
     application_scopes: set[str]
     scopes_mapping: dict[str, set[str]]
 
     def __init__(
-        self, issuer_url: HttpUrl, scopes: set[str], scopes_mapping: dict[str, set[str]]
+        self,
+        idp_config: IdpConfig,
+        scopes: set[str],
+        scopes_mapping: dict[str, set[str]],
     ) -> None:
-        self.issuer_url = issuer_url
+        self.idp_config = idp_config
         self.application_scopes = scopes
         self.scopes_mapping = scopes_mapping
 
     def on_error(self, err: Exception) -> Response:
-        bearer = f'Bearer scope="{" ".join(self.application_scopes)}"'
+        scopes = self.application_scopes
+
+        # It's an error to have an empty scopes parameter in an OAuth flow.
+        # In the case the application doesn't request any, we include the
+        # "openid" scope, which is the most minimal scope for OIDC there is
+        # (and most OAuth IdPs should also support it).
+        if len(scopes) == 0:
+            scopes = ["openid"]
+        bearer = f'Bearer scope="{" ".join(scopes)}"'
+
         if isinstance(err, AuthorizationError):
             status_code = 403
         else:
@@ -134,9 +141,22 @@ class BearerTokenBackend(AuthenticationBackend):
             raise AuthenticationError("Invalid credentials") from err
 
     async def _decode_token(self, token: str) -> Any:
-        jwks = await self._get_jwks()
-        decoded_token = self.validate_token(jwks, token)
-        return decoded_token
+        # First, try to see if it's a JWT, and decode it.
+        try:
+            jwks = await self.idp_config.get_jwks()
+            decoded_token = self.validate_token(jwks, token)
+            return decoded_token
+        except Exception:
+            pass
+
+        # If not, try the token introspection endpoint (as defined by RFC 7662)
+        try:
+            result = await self.idp_config.validate_token(token)
+            return result
+        except Exception:
+            pass
+
+        raise AuthenticationError("Could not verify token")
 
     def _validate_scopes(self, message: mcpengine.JSONRPCRequest, decoded_token: Any):
         decoded_scopes = decoded_token.get("scope", None)
@@ -162,19 +182,6 @@ class BearerTokenBackend(AuthenticationBackend):
         if scheme.lower() != "bearer":
             raise AuthenticationError(f'Invalid auth schema "{scheme}", must be Bearer')
         return token
-
-    async def _get_jwks(self) -> Any:
-        # TODO: Cache this stuff
-        async with httpx.AsyncClient() as client:
-            issuer_url = str(self.issuer_url).rstrip("/") + "/"
-            well_known_url = urljoin(issuer_url, OAUTH_WELL_KNOWN_PATH)
-            response = await client.get(well_known_url)
-
-            jwks_url = response.json()["jwks_uri"]
-            response = await client.get(jwks_url)
-            jwks_keys = response.json()["keys"]
-
-            return jwks_keys
 
     @staticmethod
     def validate_token(jwks: list[dict[str, object]], token: str) -> Any:

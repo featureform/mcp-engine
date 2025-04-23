@@ -3,7 +3,7 @@ name = "lambda-weather"
 version = "0.1.0"
 description = "A simple MCP server exposing a weather tool, to be hosted on Lambda"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 authors = [{ name = "Featureform, Inc." }]
 maintainers = [
     { name = "Simba Khadder", email = "simba@featureform.com" },

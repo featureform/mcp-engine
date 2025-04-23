@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from mcpengine.cli.docker import PROXY_IMAGE_NAME
 from mcpengine.server.mcpengine.utilities.logging import get_logger
 
 logger = get_logger(__name__)
@@ -31,28 +32,10 @@ def get_claude_config_path() -> Path | None:
     return None
 
 
-def update_claude_config(
-    file_spec: str,
-    server_name: str,
-    *,
-    with_editable: Path | None = None,
-    with_packages: list[str] | None = None,
-    env_vars: dict[str, str] | None = None,
+def _update_server_config(
+    name: str,
+    entry: dict[str, Any],
 ) -> bool:
-    """Add or update a MCPEngine server in Claude's configuration.
-
-    Args:
-        file_spec: Path to the server file, optionally with :object suffix
-        server_name: Name for the server in Claude's config
-        with_editable: Optional directory to install in editable mode
-        with_packages: Optional list of additional packages to install
-        env_vars: Optional dictionary of environment variables. These are merged with
-            any existing variables, with new values taking precedence.
-
-    Raises:
-        RuntimeError: If Claude Desktop's config directory is not found, indicating
-            Claude Desktop may not be installed or properly set up.
-    """
     config_dir = get_claude_config_path()
     if not config_dir:
         raise RuntimeError(
@@ -75,59 +58,26 @@ def update_claude_config(
             return False
 
     try:
+        env_vars = entry.get("env", {})
+
         config = json.loads(config_file.read_text())
         if "mcpServers" not in config:
             config["mcpServers"] = {}
 
         # Always preserve existing env vars and merge with new ones
-        if (
-            server_name in config["mcpServers"]
-            and "env" in config["mcpServers"][server_name]
-        ):
-            existing_env = config["mcpServers"][server_name]["env"]
+        if name in config["mcpServers"] and "env" in config["mcpServers"][name]:
+            existing_env = config["mcpServers"][name]["env"]
             if env_vars:
                 # New vars take precedence over existing ones
                 env_vars = {**existing_env, **env_vars}
             else:
                 env_vars = existing_env
 
-        # Build uv run command
-        args = ["run"]
-
-        # Collect all packages in a set to deduplicate
-        packages = {MCP_PACKAGE}
-        if with_packages:
-            packages.update(pkg for pkg in with_packages if pkg)
-
-        # Add all packages with --with
-        for pkg in sorted(packages):
-            args.extend(["--with", pkg])
-
-        if with_editable:
-            args.extend(["--with-editable", str(with_editable)])
-
-        # Convert file path to absolute before adding to command
-        # Split off any :object suffix first
-        if ":" in file_spec:
-            file_path, server_object = file_spec.rsplit(":", 1)
-            file_spec = f"{Path(file_path).resolve()}:{server_object}"
-        else:
-            file_spec = str(Path(file_spec).resolve())
-
-        # Add mcpengine run command
-        args.extend(["mcpengine", "run", file_spec])
-
-        server_config: dict[str, Any] = {"command": "uv", "args": args}
-
-        # Add environment variables if specified
-        if env_vars:
-            server_config["env"] = env_vars
-
-        config["mcpServers"][server_name] = server_config
+        config["mcpServers"][name] = entry
 
         config_file.write_text(json.dumps(config, indent=2))
         logger.info(
-            f"Added server '{server_name}' to Claude config",
+            f"Added server '{name}' to Claude config",
             extra={"config_file": str(config_file)},
         )
         return True
@@ -140,3 +90,104 @@ def update_claude_config(
             },
         )
         return False
+
+
+def install_proxy(
+    name: str,
+    host_endpoint: str,
+    *,
+    mode: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+    debug: bool = False,
+):
+    if not get_claude_config_path():
+        logger.error("Claude app not found")
+        sys.exit(1)
+
+    cmd = "docker"
+    args = [
+        "run",
+        "-i",
+        "--rm",
+        "-p",
+        "8181:8181",
+        PROXY_IMAGE_NAME,
+        f"-host={host_endpoint}",
+    ]
+
+    if mode:
+        args.append(f"-mode={mode}")
+
+    if client_id:
+        args.append(f"-client_id={client_id}")
+
+    if client_secret:
+        args.append(f"-client_secret={client_secret}")
+
+    if debug:
+        args.append("-debug")
+
+    config = {
+        "command": cmd,
+        "args": args,
+    }
+
+    return _update_server_config(name, config)
+
+
+def update_claude_config(
+    file_spec: str,
+    server_name: str,
+    *,
+    with_editable: Path | None = None,
+    with_packages: list[str] | None = None,
+    env_vars: dict[str, str] | None = None,
+) -> bool:
+    """Add or update a MCPEngine server in Claude's configuration.
+
+    Args:
+        file_spec: Path to the server file, optionally with :object suffix
+        server_name: Name for the server in Claude's config
+        with_editable: Optional directory to install in editable mode
+        with_packages: Optional list of additional packages to install
+        env_vars: Optional dictionary of environment variables. These are merged with
+            any existing variables, with new values taking precedence.
+
+    Raises:
+        RuntimeError: If Claude Desktop's config directory is not found, indicating
+            Claude Desktop may not be installed or properly set up.
+    """
+    # Build uv run command
+    args = ["run"]
+
+    # Collect all packages in a set to deduplicate
+    packages = {MCP_PACKAGE}
+    if with_packages:
+        packages.update(pkg for pkg in with_packages if pkg)
+
+    # Add all packages with --with
+    for pkg in sorted(packages):
+        args.extend(["--with", pkg])
+
+    if with_editable:
+        args.extend(["--with-editable", str(with_editable)])
+
+    # Convert file path to absolute before adding to command
+    # Split off any :object suffix first
+    if ":" in file_spec:
+        file_path, server_object = file_spec.rsplit(":", 1)
+        file_spec = f"{Path(file_path).resolve()}:{server_object}"
+    else:
+        file_spec = str(Path(file_spec).resolve())
+
+    # Add mcpengine run command
+    args.extend(["mcpengine", "run", file_spec])
+
+    server_config: dict[str, Any] = {"command": "uv", "args": args}
+
+    # Add environment variables if specified
+    if env_vars:
+        server_config["env"] = env_vars
+
+    return _update_server_config(server_name, server_config)

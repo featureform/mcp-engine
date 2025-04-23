@@ -13,13 +13,14 @@ message listing and posting capabilities.
 """
 
 import logging
-import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-from db import MessageDB
 from mcpengine import Context, MCPEngine
+from mcpengine.server.auth.providers.config import IdpConfig
+
+from .db import MessageDB
 
 # Configure logging
 logging.basicConfig(
@@ -65,18 +66,13 @@ async def app_lifespan(server: MCPEngine) -> AsyncIterator[AppContext]:
 mcp = MCPEngine(
     "smack",
     lifespan=app_lifespan,
-    authentication_enabled=True,
-    issuer_url="https://accounts.google.com",
+    idp_config=IdpConfig(
+        issuer_url="http://localhost:8080/realms/master"
+    ),
 )
 
-#mcp = MCPEngine(
-#    "smack",
-#    lifespan=app_lifespan,
-#    authentication_enabled=True,
-#    issuer_url="http://localhost:8080/realms/master"
-#)
 
-@mcp.auth(scopes=["openid"])
+@mcp.auth(scopes=["messages:list"])
 @mcp.tool()
 async def list_messages(ctx: Context) -> str:
     """
@@ -111,7 +107,7 @@ async def list_messages(ctx: Context) -> str:
         return f"An error occurred while retrieving messages: {str(e)}"
 
 
-@mcp.auth(scopes=["openid"])
+@mcp.auth(scopes=["messages:post"])
 @mcp.tool()
 async def post_message(ctx: Context, message: str) -> str:
     """
@@ -147,26 +143,36 @@ async def post_message(ctx: Context, message: str) -> str:
         return "Failed to post message to database"
 
 
-logger.info("Starting Smack server")
-logger.info("Connecting to database...")
-# Test database connection before starting the server
-db = MessageDB()
-try:
-    # Test basic connection - will throw exception if connection fails
-    db._get_connection()
-    logger.info("Database connection established successfully")
-except Exception as e:
-    logger.critical(f"Failed to establish database connection: {e}")
-    logger.critical(
-        "Please ensure the database is running and accessible. "
-        "Check your environment variables:"
-        "DATABASE_URL or DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD"
-    )
-    sys.exit(1)
-finally:
-    # Close the test connection
-    db.close_connection()
-    # Start the server
-    mcp.run(transport="http")
+def main():
+    try:
+        logger.info("Starting Smack server")
+        logger.info("Connecting to database...")
+        # Test database connection before starting the server
+        db = MessageDB()
+        try:
+            # Test basic connection - will throw exception if connection fails
+            db._get_connection()
+            logger.info("Database connection established successfully")
+        except Exception as e:
+            logger.critical(f"Failed to establish database connection: {e}")
+            logger.critical(
+                "Please ensure the database is running and accessible. "
+                "Check your environment variables:"
+                "DATABASE_URL or DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD"
+            )
+            return 1
+        finally:
+            # Close the test connection
+            db.close_connection()
+
+        # Start the server
+        mcp.run(transport="sse")
+    except KeyboardInterrupt:
+        logger.info("Server shutdown requested via KeyboardInterrupt")
+    except Exception as e:
+        logger.critical(f"Unhandled exception in server: {e}")
+        return 1
+
+    return 0
 
 handler = mcp.get_lambda_handler()

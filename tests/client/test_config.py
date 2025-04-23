@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mcpengine.cli.claude import update_claude_config
+from mcpengine.cli.claude import install_proxy, update_claude_config
 
 
 @pytest.fixture
@@ -49,3 +49,35 @@ def test_command_execution(mock_config_path: Path):
 
     assert result.returncode == 0
     assert "usage" in result.stdout.lower()
+
+
+def test_proxy_installation(mock_config_path: Path):
+    """Test that the install proxy command works."""
+    server_name = "test-server"
+    success = install_proxy(
+        name=server_name,
+        host_endpoint="http://localhost:8000",
+        mode="http",
+        client_id="client-id",
+        client_secret="client-secret",
+        debug=True,
+    )
+    assert success
+
+    # Read the generated config
+    config_file = mock_config_path / "claude_desktop_config.json"
+    config = json.loads(config_file.read_text())
+
+    # Get the command and args
+    server_config = config["mcpServers"][server_name]
+    command = server_config["command"]
+    args = server_config["args"]
+
+    assert command == "docker"
+    assert args[0] == "run"
+
+    assert "-i" in args
+    assert "-host=http://localhost:8000" in args
+    assert "-client_id=client-id" in args
+    assert "-client_secret=client-secret" in args
+    assert "-debug" in args

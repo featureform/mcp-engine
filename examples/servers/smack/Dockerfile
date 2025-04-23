@@ -7,8 +7,8 @@ FROM public.ecr.aws/lambda/python:3.12
 # Set working directory in the container
 WORKDIR /var/task
 
-# Install uv and tomli for TOML parsing
-RUN pip install --no-cache-dir uv tomli==2.0.1
+# Install uv
+RUN pip install --no-cache-dir uv
 
 # Copy the application code
 COPY . .

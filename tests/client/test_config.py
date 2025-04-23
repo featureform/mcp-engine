@@ -76,6 +76,7 @@ def test_proxy_installation(mock_config_path: Path):
     assert command == "docker"
     assert args[0] == "run"
 
+    assert "-i" in args
     assert "-host=http://localhost:8000" in args
     assert "-client_id=client-id" in args
     assert "-client_secret=client-secret" in args

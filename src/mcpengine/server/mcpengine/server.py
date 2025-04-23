@@ -582,24 +582,17 @@ class MCPEngine:
                     self._mcp_server.create_initialization_options(),
                 )
 
-        async def handle_well_known(_: Request) -> Response:
-            async with httpx.AsyncClient() as client:
-                issuer_url = str(self.settings.idp_config.issuer_url).rstrip("/") + "/"
-                well_known_url = urljoin(issuer_url, OPENID_WELL_KNOWN_PATH)
-                response = await client.get(well_known_url)
-                return JSONResponse(response.json())
-
         middleware: Sequence[Middleware] = []
 
         routes = [
             Route(
                 f"/{OAUTH_WELL_KNOWN_PATH}",
-                endpoint=handle_well_known,
+                endpoint=self.handle_well_known,
                 methods=["GET", "OPTIONS"],
             ),
             Route(
                 f"/{OPENID_WELL_KNOWN_PATH}",
-                endpoint=handle_well_known,
+                endpoint=self.handle_well_known,
                 methods=["GET", "OPTIONS"],
             ),
             Route(self.settings.sse_path, endpoint=handle_sse),
@@ -622,24 +615,17 @@ class MCPEngine:
         auth_backend = get_auth_backend(self.settings, self.scopes, self.scopes_mapping)
         transport = HttpServerTransport(self._mcp_server, auth_backend)
 
-        async def handle_well_known(_: Request) -> Response:
-            async with httpx.AsyncClient() as client:
-                issuer_url = str(self.settings.idp_config.issuer_url).rstrip("/") + "/"
-                well_known_url = urljoin(issuer_url, OPENID_WELL_KNOWN_PATH)
-                response = await client.get(well_known_url)
-                return JSONResponse(response.json())
-
         middleware: Sequence[Middleware] = []
 
         routes = [
             Route(
                 f"/{OAUTH_WELL_KNOWN_PATH}",
-                endpoint=handle_well_known,
+                endpoint=self.handle_well_known,
                 methods=["GET", "OPTIONS"],
             ),
             Route(
                 f"/{OPENID_WELL_KNOWN_PATH}",
-                endpoint=handle_well_known,
+                endpoint=self.handle_well_known,
                 methods=["GET", "OPTIONS"],
             ),
             Route(
@@ -685,6 +671,16 @@ class MCPEngine:
         except Exception as e:
             logger.error(f"Error getting prompt {name}: {e}")
             raise ValueError(str(e))
+
+    async def handle_well_known(self, _: Request) -> Response:
+        idp_config = self.settings.idp_config
+        if idp_config is None:
+            return Response(status_code=500, content="Invalid IdP configuration")
+        async with httpx.AsyncClient() as client:
+            issuer_url = str(idp_config.issuer_url).rstrip("/") + "/"
+            well_known_url = urljoin(issuer_url, OPENID_WELL_KNOWN_PATH)
+            response = await client.get(well_known_url)
+            return JSONResponse(response.json())
 
 
 def _convert_to_content(

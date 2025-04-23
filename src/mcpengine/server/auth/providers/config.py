@@ -11,6 +11,8 @@ from async_lru import alru_cache
 OPENID_WELL_KNOWN_PATH: str = ".well-known/openid-configuration"
 OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
+METADATA_CACHE_TTL = 300  # in seconds
+
 
 class IdpConfig:
     issuer_url: str
@@ -21,7 +23,7 @@ class IdpConfig:
         self.issuer_url = issuer_url
         self.token_validation_endpoint = token_validation_endpoint
 
-    @alru_cache()
+    @alru_cache(ttl=METADATA_CACHE_TTL)
     async def get_metadata(self) -> Any:
         endpoints = [OPENID_WELL_KNOWN_PATH, OAUTH_WELL_KNOWN_PATH]
         issuer_url = str(self.issuer_url).rstrip("/") + "/"
@@ -36,7 +38,7 @@ class IdpConfig:
 
                 return response.json()
 
-    @alru_cache()
+    @alru_cache(ttl=METADATA_CACHE_TTL)
     async def get_jwks(self) -> Any:
         metadata = await self.get_metadata()
         async with httpx.AsyncClient() as client:

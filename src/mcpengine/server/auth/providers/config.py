@@ -11,15 +11,12 @@ from async_lru import alru_cache
 OPENID_WELL_KNOWN_PATH: str = ".well-known/openid-configuration"
 OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
+
 class IdpConfig:
     issuer_url: str
     token_validation_endpoint: str | None
 
-    def __init__(
-            self,
-            issuer_url: str ,
-            token_validation_endpoint: str | None = None
-    ):
+    def __init__(self, issuer_url: str, token_validation_endpoint: str | None = None):
         super().__init__()
         self.issuer_url = issuer_url
         self.token_validation_endpoint = token_validation_endpoint
@@ -38,7 +35,6 @@ class IdpConfig:
                     continue
 
                 return response.json()
-
 
     @alru_cache()
     async def get_jwks(self) -> Any:

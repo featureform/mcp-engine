@@ -11,6 +11,7 @@ from mcpengine.server.auth.providers.config import IdpConfig
 ISSUER_URL = "https://accounts.google.com"
 TOKEN_VALIDATION_ENDPOINT = "https://oauth2.googleapis.com/tokeninfo"
 
+
 class GoogleIdpConfig(IdpConfig):
     def __init__(self):
         super().__init__(ISSUER_URL)
@@ -18,7 +19,6 @@ class GoogleIdpConfig(IdpConfig):
     async def validate_token(self, token: str) -> dict[str, Any]:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                str(TOKEN_VALIDATION_ENDPOINT),
-                params={"access_token": token }
+                str(TOKEN_VALIDATION_ENDPOINT), params={"access_token": token}
             )
             return response.json()

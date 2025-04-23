@@ -78,7 +78,10 @@ class BearerTokenBackend(AuthenticationBackend):
     scopes_mapping: dict[str, set[str]]
 
     def __init__(
-        self, idp_config: IdpConfig, scopes: set[str], scopes_mapping: dict[str, set[str]]
+        self,
+        idp_config: IdpConfig,
+        scopes: set[str],
+        scopes_mapping: dict[str, set[str]],
     ) -> None:
         self.idp_config = idp_config
         self.application_scopes = scopes

@@ -3,6 +3,7 @@ data "aws_ecr_authorization_token" "token" {}
 resource "aws_ecr_repository" "weather" {
   name                 = var.resources_name
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = false

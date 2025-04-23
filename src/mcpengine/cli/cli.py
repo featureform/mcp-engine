@@ -5,13 +5,17 @@ import importlib.util
 import os
 import subprocess
 import sys
+from enum import Enum
 from pathlib import Path
 from typing import Annotated
 
+from mcpengine.cli.docker import PROXY_IMAGE_NAME
+
 try:
+    import docker
     import typer
 except ImportError:
-    print("Error: typer is required. Install with 'pip install mcpengine[cli]'")
+    print("Error: cli feature is required. Install with 'pip install mcpengine[cli]'")
     sys.exit(1)
 
 try:
@@ -468,3 +472,91 @@ def install(
     else:
         logger.error(f"Failed to install {name} in Claude app")
         sys.exit(1)
+
+
+class TransportMode(str, Enum):
+    http = "http"
+    sse = "sse"
+
+
+@app.command()
+def proxy(
+    name: Annotated[
+        str, typer.Argument(help="The name to associate with the MCP server.")
+    ],
+    host_endpoint: Annotated[
+        str,
+        typer.Argument(
+            help="The endpoint of the running MCP server.",
+        ),
+    ],
+    mode: Annotated[
+        TransportMode,
+        typer.Option("--mode", "-m", help="The transport mode of the MCP server."),
+    ] = TransportMode.sse,
+    client_id: Annotated[
+        str | None,
+        typer.Option(
+            "--client-id",
+            help="The client id of the IdP used by the MCP server.",
+        ),
+    ] = None,
+    client_secret: Annotated[
+        str | None,
+        typer.Option(
+            "--client-secret",
+            help="The client secret of the IdP used by the MCP server.",
+        ),
+    ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            "-d",
+            help="Enable debug mode for more verbose logs.",
+        ),
+    ] = False,
+    install_claude: Annotated[
+        bool, typer.Option("--claude", help="Add the installation to Claude config.")
+    ] = False,
+) -> None:
+    """Install a proxy to an MCP server.
+
+    Environment variables are preserved once added and only updated if new values
+    are explicitly provided.
+    """
+    logger.debug(
+        "Installing server",
+        extra={
+            "server_name": name,
+            "host_endpoint": host_endpoint,
+            "mode": mode.value,
+            "client_id": client_id,
+            "client_secret": "*" * len(client_secret) if client_secret else None,
+            "debug": debug,
+        },
+    )
+
+    client = docker.from_env()
+
+    logger.debug("Pulling latest version of mcpengine-proxy")
+    client.images.pull(PROXY_IMAGE_NAME, "latest")
+
+    # This check is here for when future installation targets are added.
+    if not install_claude:
+        logger.warning("No installation target specified.")
+        sys.exit(1)
+
+    if install_claude:
+        if claude.install_proxy(
+            name=name,
+            host_endpoint=host_endpoint,
+            client_id=client_id,
+            client_secret=client_secret,
+            mode=mode.value,
+            debug=debug,
+        ):
+            logger.info(f"Successfully installed {name} in Claude app")
+        else:
+            logger.error(f"Failed to install {name} in Claude app")
+            sys.exit(1)

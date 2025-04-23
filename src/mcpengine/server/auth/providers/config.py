@@ -7,19 +7,18 @@ from urllib.parse import urljoin
 
 import httpx
 from async_lru import alru_cache
-from pydantic import AnyHttpUrl
 
 OPENID_WELL_KNOWN_PATH: str = ".well-known/openid-configuration"
 OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
 
 class IdpConfig:
-    issuer_url: AnyHttpUrl
-    token_validation_endpoint: AnyHttpUrl | None
+    issuer_url: str
+    token_validation_endpoint: str | None
 
     def __init__(
             self,
-            issuer_url: AnyHttpUrl,
-            token_validation_endpoint: AnyHttpUrl | None = None
+            issuer_url: str ,
+            token_validation_endpoint: str | None = None
     ):
         super().__init__()
         self.issuer_url = issuer_url

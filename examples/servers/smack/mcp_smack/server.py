@@ -18,6 +18,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
 from mcpengine import Context, MCPEngine
+from mcpengine.server.auth.providers.config import IdpConfig
 
 from .db import MessageDB
 
@@ -65,8 +66,9 @@ async def app_lifespan(server: MCPEngine) -> AsyncIterator[AppContext]:
 mcp = MCPEngine(
     "smack",
     lifespan=app_lifespan,
-    authentication_enabled=True,
-    issuer_url="http://localhost:8080/realms/master",
+    idp_config=IdpConfig(
+        issuer_url="http://localhost:8080/realms/master"
+    ),
 )
 
 

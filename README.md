@@ -95,11 +95,13 @@ Enable OAuth and scopes:
 
 ```python
 from mcpengine import MCPEngine, Context
+from mcpengine.server.auth.providers.config import IdpConfig
 
 mcp = MCPEngine(
     "SecureDemo",
-    authentication_enabled=True,
-    issuer_url="https://your-idp.example.com/realms/some-realm",
+    idp_config=IdpConfig(
+        issuer_url="https://your-idp.example.com/realms/some-realm",
+    ),
 )
 
 
@@ -190,11 +192,13 @@ Each request has a Context:
 ```python
 import sqlite3
 from mcpengine import MCPEngine, Context
+from mcpengine.server.auth.providers.config import IdpConfig
 
 mcp = MCPEngine(
     "SQLiteExplorer",
-    authentication_enabled=True,
-    issuer_url="https://your-idp.example.com/realms/some-realm",
+    idp_config=IdpConfig(
+        issuer_url="https://your-idp.example.com/realms/some-realm",
+    ),
 )
 
 

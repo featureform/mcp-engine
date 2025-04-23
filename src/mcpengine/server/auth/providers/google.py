@@ -5,12 +5,11 @@
 from typing import Any
 
 import httpx
-from pydantic import AnyHttpUrl
 
 from mcpengine.server.auth.providers.config import IdpConfig
 
-ISSUER_URL: AnyHttpUrl = AnyHttpUrl("https://accounts.google.com")
-TOKEN_VALIDATION_ENDPOINT: AnyHttpUrl = AnyHttpUrl("https://oauth2.googleapis.com/tokeninfo")
+ISSUER_URL = "https://accounts.google.com"
+TOKEN_VALIDATION_ENDPOINT = "https://oauth2.googleapis.com/tokeninfo"
 
 class GoogleIdpConfig(IdpConfig):
     def __init__(self):

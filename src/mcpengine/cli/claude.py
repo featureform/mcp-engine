@@ -108,6 +108,7 @@ def install_proxy(
     cmd = "docker"
     args = [
         "run",
+        "-i",
         "--rm",
         "-p",
         "8181:8181",

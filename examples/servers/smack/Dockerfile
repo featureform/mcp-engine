@@ -10,13 +10,8 @@ WORKDIR /var/task
 # Install uv and tomli for TOML parsing
 RUN pip install --no-cache-dir uv tomli==2.0.1
 
-# Copy pyproject.toml
-COPY ./examples/servers/smack/pyproject.toml .
-
 # Copy the application code
-COPY ./examples/servers/smack .
-COPY ./src ./mcp-engine/src
-COPY pyproject.toml ./mcp-engine/pyproject.toml
+COPY . .
 
 # Install dependencies using uv with --system flag
 RUN uv pip install --system --no-cache-dir .

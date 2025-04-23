@@ -13,16 +13,13 @@ message listing and posting capabilities.
 """
 
 import logging
-import os
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
-from mangum import Mangum
+from db import MessageDB
 from mcpengine import Context, MCPEngine
-
-from .db import MessageDB
 
 # Configure logging
 logging.basicConfig(
@@ -68,8 +65,8 @@ async def app_lifespan(server: MCPEngine) -> AsyncIterator[AppContext]:
 mcp = MCPEngine(
     "smack",
     lifespan=app_lifespan,
-    authentication_enabled=os.environ.get("AUTH_ENABLED", "False").lower() in ('true', 't', '1'),
-    issuer_url=os.environ.get("ISSUER_URL", None),
+    authentication_enabled=True,
+    issuer_url="https://accounts.google.com",
 )
 
 #mcp = MCPEngine(
@@ -79,7 +76,7 @@ mcp = MCPEngine(
 #    issuer_url="http://localhost:8080/realms/master"
 #)
 
-@mcp.auth(scopes=["messages:list"])
+@mcp.auth(scopes=["openid"])
 @mcp.tool()
 async def list_messages(ctx: Context) -> str:
     """
@@ -114,7 +111,7 @@ async def list_messages(ctx: Context) -> str:
         return f"An error occurred while retrieving messages: {str(e)}"
 
 
-@mcp.auth(scopes=["messages:post"])
+@mcp.auth(scopes=["openid"])
 @mcp.tool()
 async def post_message(ctx: Context, message: str) -> str:
     """
@@ -169,9 +166,7 @@ except Exception as e:
 finally:
     # Close the test connection
     db.close_connection()
+    # Start the server
+    mcp.run(transport="http")
 
-handler = Mangum(mcp.http_app())
-#def main():
-#    mcp.run(transport='http')
-#if __name__ == "__main__":
-#    mcp.run(transport='http')
+handler = mcp.get_lambda_handler()

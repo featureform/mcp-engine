@@ -5,6 +5,7 @@
 
 import sys
 
-from .server import main
+from server import main
 
-sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(main())

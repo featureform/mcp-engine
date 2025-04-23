@@ -1,6 +1,6 @@
 [project]
 name = "mcpengine"
-version = "0.2.0"
+version = "0.3.0"
 description = "MCPEngine is a Model Context Protocol SDK built for Production"
 readme = "README.md"
 requires-python = ">=3.10"

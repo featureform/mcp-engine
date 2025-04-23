@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
     "httpx>=0.27.0",
-    "mcpengine[lambda]>=0.2.0",
+    "mcpengine[lambda]>=0.3.0",
 ]
 
 [tool.hatch.metadata]

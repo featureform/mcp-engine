@@ -46,7 +46,7 @@ func TestSSEWorker_PassesEndpointAndMessages(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	go worker.Run(ctx)
+	go worker.Run(ctx, cancel)
 	<-fakeClient.IsSubscribed // Wait for subscription
 
 	// Simulate sending SSE events
@@ -136,7 +136,7 @@ func TestSSEWorker_EndpointDetection(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 
-			go worker.Run(ctx)
+			go worker.Run(ctx, cancel)
 			<-fakeClient.IsSubscribed
 
 			// Send the test message
@@ -201,7 +201,7 @@ func TestSSEWorker_SkipsSubsequentEndpoints(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	go worker.Run(ctx)
+	go worker.Run(ctx, cancel)
 	<-fakeClient.IsSubscribed
 
 	// Send two endpoint messages - only the first should be forwarded
@@ -272,7 +272,7 @@ func TestSSEWorker_Cancellation(t *testing.T) {
 	// Run the worker in a goroutine and capture the result
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- worker.Run(ctx)
+		errCh <- worker.Run(ctx, cancel)
 	}()
 
 	// Wait for subscription
@@ -304,12 +304,12 @@ func TestSSEWorker_EventChannelClosure(t *testing.T) {
 
 	worker := NewSSEWorker(fakeClient, endpointChan, outputChan, logger)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	// Run the worker in a goroutine and capture the result
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- worker.Run(ctx)
+		errCh <- worker.Run(ctx, cancel)
 	}()
 
 	// Wait for subscription
@@ -348,7 +348,7 @@ func TestSSEWorker_SubscribeError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	err := worker.Run(ctx)
+	err := worker.Run(ctx, cancel)
 
 	// Should return context cancellation error, not subscription error
 	if err != context.DeadlineExceeded {

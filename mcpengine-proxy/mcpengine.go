@@ -83,10 +83,13 @@ func (mcp *MCPEngine) Start(ctx context.Context) {
 }
 
 type worker interface {
-	Run(context.Context) error
+	Run(ctx context.Context, cancel context.CancelFunc) error
 }
 
 func (mcp *MCPEngine) runWorkersAndWait(ctx context.Context, workers map[string]worker, logger *zap.SugaredLogger) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	var wg sync.WaitGroup
 	wg.Add(len(workers))
 	for name, worker := range workers {
@@ -94,7 +97,7 @@ func (mcp *MCPEngine) runWorkersAndWait(ctx context.Context, workers map[string]
 		go func() {
 			defer wg.Done()
 			logger.Debugw("Starting worker", "worker-name", name)
-			err := constWorker.Run(ctx)
+			err := constWorker.Run(ctx, cancel)
 			mcp.logger.Infow("Worker exited with error", "worker-name", name, "err", err)
 		}()
 	}
@@ -125,7 +128,7 @@ func NewFileReader(file *os.File, outputChan chan string, logger *zap.SugaredLog
 // Run reads the file line by line and sends each line to the output channel.
 // It stops when the file is exhausted or when the context is cancelled.
 // The output channel is closed before returning.
-func (fr *FileReader) Run(ctx context.Context) error {
+func (fr *FileReader) Run(ctx context.Context, cancel context.CancelFunc) error {
 	fr.logger.Debug("Starting to read file")
 	defer close(fr.outputChan)
 	scanner := bufio.NewScanner(fr.file)
@@ -182,7 +185,7 @@ func NewHTTPPostSender(
 // Run waits to receive an endpoint from endpointChan and then continuously reads messages
 // from inputChan, posting each to the resolved endpoint. It stops when inputChan is closed
 // or when the context is cancelled.
-func (hs *HTTPPostSender) Run(ctx context.Context) error {
+func (hs *HTTPPostSender) Run(ctx context.Context, cancel context.CancelFunc) error {
 	hs.logger.Debug("Starting HTTPPostSender")
 	hs.logger.Debug("Waiting for POST path")
 	var endpointPath string
@@ -350,7 +353,7 @@ func NewOutputProxy(file *os.File, inputChan chan string, logger *zap.SugaredLog
 // Run continuously reads from the input channel and writes each message to the file,
 // appending a newline after each message. It returns when the channel is closed or
 // the context is canceled.
-func (op *OutputProxy) Run(ctx context.Context) error {
+func (op *OutputProxy) Run(ctx context.Context, cancel context.CancelFunc) error {
 	writer := bufio.NewWriter(op.file)
 	defer writer.Flush()
 
@@ -406,7 +409,7 @@ func NewSSEWorker(client sseClient, endpointChan, outputChan chan string, logger
 
 // Run subscribes to the "messages" SSE stream, waits for the first relevant endpoint message,
 // sends that message to endpointChan, and then sends every SSE message to outputChan.
-func (sw *SSEWorker) Run(ctx context.Context) error {
+func (sw *SSEWorker) Run(ctx context.Context, cancel context.CancelFunc) error {
 	msgChan := make(chan *sse.Event)
 	go func() {
 		sw.logger.Debug("Subscribing to messages channel")

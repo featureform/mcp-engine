@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -106,7 +108,7 @@ type AuthManager struct {
 // If a nil or partially populated config is provided, missing fields are replaced with defaults.
 func NewAuthManager(cfg *AuthConfig, logger *zap.SugaredLogger) *AuthManager {
 	cfg = resolveConfig(cfg)
-	redirectURL := fmt.Sprintf("http://localhost:%d%s", cfg.ListenPort, cfg.CallbackPath)
+	redirectURL := getRedirectURL(cfg.ListenPort, cfg.CallbackPath)
 	return &AuthManager{
 		clientID:         cfg.ClientID,
 		clientSecret:     cfg.ClientSecret,
@@ -399,4 +401,16 @@ func generateState() string {
 		return fmt.Sprintf("%d", time.Now().UnixNano())
 	}
 	return base64.StdEncoding.EncodeToString(b)
+}
+
+func getRedirectURL(port int, callbackPath string) string {
+	// This is useful in the case of Docker port mapping, where the
+	// host port and the container port are not the same.
+	hostPortStr := os.Getenv("HOST_PORT")
+	if hostPort, err := strconv.Atoi(hostPortStr); err == nil {
+		port = hostPort
+	}
+
+	redirectURL := fmt.Sprintf("http://localhost:%d%s", port, callbackPath)
+	return redirectURL
 }

@@ -3,6 +3,7 @@
 import importlib.metadata
 import importlib.util
 import os
+import shlex
 import subprocess
 import sys
 from enum import Enum
@@ -10,6 +11,7 @@ from pathlib import Path
 from typing import Annotated
 
 from mcpengine.cli.docker import PROXY_IMAGE_NAME
+from mcpengine.cli.server import get_config, prompt_command
 
 try:
     import docker
@@ -477,6 +479,42 @@ def install(
 class TransportMode(str, Enum):
     http = "http"
     sse = "sse"
+
+
+@app.command()
+def add(
+    path: Annotated[
+        Path, typer.Argument(help="The path of the MCP server file config to add.")
+    ],
+    install_claude: Annotated[
+        bool, typer.Option("--claude", help="Add the installation to Claude config.")
+    ] = False,
+):
+    """Adds an MCP server via a config file.
+    """
+    config = get_config(path)
+    command = prompt_command(config)
+
+    split_command = shlex.split(command)
+    command, args = split_command[0], split_command[1:]
+
+    # This check is here for when future installation targets are added.
+    if not install_claude:
+        logger.warning("No installation target specified.")
+        sys.exit(1)
+
+    if install_claude:
+        if claude.update_server_config(
+            name=config.name,
+            entry={
+                "command": command,
+                "args": args,
+            },
+        ):
+            logger.info(f"Successfully installed {config.name} in Claude app")
+        else:
+            logger.error(f"Failed to install {config.name} in Claude app")
+            sys.exit(1)
 
 
 @app.command()

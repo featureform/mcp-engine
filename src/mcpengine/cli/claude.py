@@ -32,7 +32,7 @@ def get_claude_config_path() -> Path | None:
     return None
 
 
-def _update_server_config(
+def update_server_config(
     name: str,
     entry: dict[str, Any],
 ) -> bool:
@@ -133,7 +133,7 @@ def install_proxy(
         "args": args,
     }
 
-    return _update_server_config(name, config)
+    return update_server_config(name, config)
 
 
 def update_claude_config(
@@ -190,4 +190,4 @@ def update_claude_config(
     if env_vars:
         server_config["env"] = env_vars
 
-    return _update_server_config(server_name, server_config)
+    return update_server_config(server_name, server_config)

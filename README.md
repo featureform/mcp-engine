@@ -56,6 +56,9 @@ Once installed, you can run the CLI tools:
 mcpengine --help
 ```
 
+**Requirements:** in order to run the proxy provided by MCPEngine (see below), the Docker daemon needs to be & up and running 
+on local system with access to Docker Hub to pull image `featureformcom/mcpengine-proxy:latest`.
+
 ## Quickstart
 
 ### Create a Server

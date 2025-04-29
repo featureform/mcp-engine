@@ -96,6 +96,7 @@ def install_proxy(
     name: str,
     host_endpoint: str,
     *,
+    port: int = 8181,
     mode: str | None = None,
     client_id: str | None = None,
     client_secret: str | None = None,
@@ -111,7 +112,7 @@ def install_proxy(
         "-i",
         "--rm",
         "-p",
-        "8181:8181",
+        f"{port}:8181",
         PROXY_IMAGE_NAME,
         f"-host={host_endpoint}",
     ]

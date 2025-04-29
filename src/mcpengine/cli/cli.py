@@ -494,6 +494,13 @@ def proxy(
         TransportMode,
         typer.Option("--mode", "-m", help="The transport mode of the MCP server."),
     ] = TransportMode.sse,
+    port: Annotated[
+        int,
+        typer.Option(
+            "--port",
+            "-p",
+        ),
+    ] = 8181,
     client_id: Annotated[
         str | None,
         typer.Option(
@@ -551,6 +558,7 @@ def proxy(
         if claude.install_proxy(
             name=name,
             host_endpoint=host_endpoint,
+            port=port,
             client_id=client_id,
             client_secret=client_secret,
             mode=mode.value,

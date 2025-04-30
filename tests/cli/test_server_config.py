@@ -1,4 +1,5 @@
 from os import listdir, path
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -18,7 +19,7 @@ INVALID_CONFIG_DIR_PATH = path.join(CONFIG_DIR_PATH, "invalid")
 
 def test_empty_config():
     """Tests a minimal server config file to be parsed properly."""
-    config = get_config(path.join(VALID_CONFIG_DIR_PATH, "empty.yaml"))
+    config = get_config(Path(path.join(VALID_CONFIG_DIR_PATH, "empty.yaml")))
 
     assert config.name == "empty"
     assert config.version == "v1"
@@ -29,7 +30,7 @@ def test_empty_config():
 
 def test_full_config():
     """Tests a server config with all optional sections to be parsed properly."""
-    config = get_config(path.join(VALID_CONFIG_DIR_PATH, "full.yaml"))
+    config = get_config(Path(path.join(VALID_CONFIG_DIR_PATH, "full.yaml")))
 
     assert config.name == "full"
     assert config.version == "v1"
@@ -71,7 +72,7 @@ def test_invalid_configs():
     """Tests all the invalid configs to ensure that they throw an Exception."""
     for invalid_config in listdir(INVALID_CONFIG_DIR_PATH):
         with pytest.raises(Exception):
-            get_config(path.join(INVALID_CONFIG_DIR_PATH, invalid_config))
+            get_config(Path(path.join(INVALID_CONFIG_DIR_PATH, invalid_config)))
 
 def test_command_template():
     """Tests that the templating in the run_command works after obtaining inputs."""

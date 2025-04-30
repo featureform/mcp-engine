@@ -68,7 +68,7 @@ func TestHTTPPostSender_WritesMessages(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	go sender.Run(ctx)
+	go sender.Run(ctx, cancel)
 
 	// Allow some time for processing.
 	time.Sleep(200 * time.Millisecond)
@@ -104,7 +104,7 @@ func TestHTTPPostSender_Cancellation(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- sender.Run(ctx)
+		errCh <- sender.Run(ctx, cancel)
 	}()
 
 	// Cancel immediately
@@ -134,8 +134,8 @@ func TestHTTPPostSender_InvalidURL(t *testing.T) {
 
 	sender := NewHTTPPostSender(client, "http://example.com", endpointChan, inputChan, outputChan, auth, logger)
 
-	ctx := context.Background()
-	err := sender.Run(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
+	err := sender.Run(ctx, cancel)
 
 	// Should return an error for invalid URL
 	if err == nil {
@@ -172,7 +172,7 @@ func TestHTTPPostSender_HTTPError(t *testing.T) {
 	defer cancel()
 
 	// This should not crash despite the HTTP error
-	go sender.Run(ctx)
+	go sender.Run(ctx, cancel)
 
 	// Allow time for processing
 	time.Sleep(200 * time.Millisecond)
@@ -206,7 +206,7 @@ func TestHTTPPostSender_UnexpectedStatusCode(t *testing.T) {
 	defer cancel()
 
 	// This should not crash despite the 500 error
-	go sender.Run(ctx)
+	go sender.Run(ctx, cancel)
 
 	// Allow time for processing
 	time.Sleep(200 * time.Millisecond)

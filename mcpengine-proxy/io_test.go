@@ -43,7 +43,7 @@ func TestFileReader_ReadsLines(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	go fr.Run(ctx)
+	go fr.Run(ctx, cancel)
 
 	var lines []string
 	for line := range outputChan {
@@ -74,7 +74,7 @@ func TestFileReader_EmptyFile(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	err := fr.Run(ctx)
+	err := fr.Run(ctx, cancel)
 	if err != io.EOF {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestFileReader_Cancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately
 
-	go fr.Run(ctx)
+	go fr.Run(ctx, cancel)
 
 	// Expect the output channel to close quickly.
 	select {
@@ -134,8 +134,8 @@ func TestFileReader_FileError(t *testing.T) {
 	badFile, _ := os.Open(tmpName)
 	fr := NewFileReader(badFile, outputChan, logger)
 
-	ctx := context.Background()
-	err := fr.Run(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
+	err := fr.Run(ctx, cancel)
 
 	// Should return an error
 	if err == nil {
@@ -165,7 +165,7 @@ func TestOutputProxy_WritesMessages(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := proxy.Run(ctx); err != nil {
+	if err := proxy.Run(ctx, cancel); err != nil {
 		t.Fatalf("OutputProxy Run returned error: %v", err)
 	}
 
@@ -194,8 +194,8 @@ func TestOutputProxy_WriteFails(t *testing.T) {
 	// Try to use the closed file
 	proxy := NewOutputProxy(tmpFile, inputChan, logger)
 
-	ctx := context.Background()
-	err := proxy.Run(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
+	err := proxy.Run(ctx, cancel)
 
 	// Should return an error
 	if err == nil {
@@ -219,7 +219,7 @@ func TestOutputProxy_Cancellation(t *testing.T) {
 	defer cancel()
 
 	// Run the proxy; we expect it to return a cancellation error
-	err := proxy.Run(ctx)
+	err := proxy.Run(ctx, cancel)
 	if err == nil {
 		t.Error("Expected error due to context cancellation, got nil")
 	}
@@ -241,7 +241,7 @@ func TestOutputProxy_ChannelClosedWhileBlocked(t *testing.T) {
 	// Run the proxy in a goroutine
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- proxy.Run(ctx)
+		errCh <- proxy.Run(ctx, cancel)
 	}()
 
 	// Allow time for proxy to start and block on channel
@@ -275,7 +275,7 @@ func TestOutputProxy_FlushAfterEachMessage(t *testing.T) {
 	defer cancel()
 
 	// Start the proxy in a goroutine
-	go proxy.Run(ctx)
+	go proxy.Run(ctx, cancel)
 
 	// Send one message
 	inputChan <- "first message"

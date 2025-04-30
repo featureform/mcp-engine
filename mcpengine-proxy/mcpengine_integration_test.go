@@ -10,7 +10,10 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/iotest"
 	"time"
+
+	"mcpengine/testutil"
 
 	"github.com/r3labs/sse/v2"
 	"go.uber.org/zap"
@@ -69,9 +72,8 @@ func TestMCPEngine_Integration(t *testing.T) {
 		fileContent += msg + "\n"
 	}
 	// Create temp files for input and output
-	inputFile := createTempFile(t, "mcpengine_input_int", fileContent)
+	inputFile := testutil.CreateTempBlockReader(t, fileContent)
 	outputFile := createTempFile(t, "mcpengine_output_int", "")
-	defer os.Remove(inputFile.Name())
 	defer os.Remove(outputFile.Name())
 
 	// Create a mock HTTP server
@@ -220,9 +222,8 @@ func TestMCPEngine_StressTest(t *testing.T) {
 	}
 
 	// Create temp files for input and output
-	inputFile := createTempFile(t, "mcpengine_stress_input", fileContent)
+	inputFile := testutil.CreateTempBlockReader(t, fileContent)
 	outputFile := createTempFile(t, "mcpengine_stress_output", "")
-	defer os.Remove(inputFile.Name())
 	defer os.Remove(outputFile.Name())
 
 	// Create a mock HTTP server
@@ -330,9 +331,8 @@ func TestMCPEngine_WorkerError(t *testing.T) {
 	sugarLogger := logger.Sugar()
 
 	// Create temp files for input and output
-	inputFile := createTempFile(t, "mcpengine_error_input", "")
+	inputFile := testutil.CreateTempBlockReader(t, "")
 	outputFile := createTempFile(t, "mcpengine_error_output", "")
-	defer os.Remove(inputFile.Name())
 	defer os.Remove(outputFile.Name())
 
 	// Create a mock HTTP server
@@ -377,9 +377,8 @@ func TestMCPEngine_Shutdown(t *testing.T) {
 	sugarLogger := logger.Sugar()
 
 	// Create temp files for input and output
-	inputFile := createTempFile(t, "mcpengine_shutdown_input", "")
+	inputFile := testutil.CreateTempBlockReader(t, "")
 	outputFile := createTempFile(t, "mcpengine_shutdown_output", "")
-	defer os.Remove(inputFile.Name())
 	defer os.Remove(outputFile.Name())
 
 	// Create a mock HTTP server
@@ -422,6 +421,58 @@ func TestMCPEngine_Shutdown(t *testing.T) {
 	case <-engineDone:
 		// Success - engine has shut down
 	case <-time.After(1 * time.Second):
+		t.Fatal("Engine did not shut down within timeout")
+	}
+}
+
+// Tests that when stdin is closed (such as a client exiting),
+// we properly exit the program, and don't stay running.
+func TestMCPEngine_StdinExit(t *testing.T) {
+	// Create a logger
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+	sugarLogger := logger.Sugar()
+
+	// Create temp files for input and output
+	inputFile := iotest.ErrReader(io.EOF)
+	outputFile := io.Discard
+
+	// Create a mock HTTP server
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	defer mockServer.Close()
+
+	// Create the engine with mocked components
+	engine := &MCPEngine{
+		endpoint:   mockServer.URL,
+		inputFile:  inputFile,
+		outputFile: outputFile,
+		useSse:     false,
+		sseClient:  nil,
+		httpClient: mockServer.Client(),
+		logger:     sugarLogger,
+		auth:       NewAuthManager(nil, sugarLogger.With("svc", "auth")),
+	}
+
+	// Start the engine in a goroutine
+	ctx := context.Background()
+
+	engineDone := make(chan struct{})
+	go func() {
+		engine.Start(ctx)
+		close(engineDone)
+	}()
+
+	// The stdin writer should have signalled shutdown when the input
+	// reaches EOF. Here we wait and check that the engine exits within
+	// a reasonable time.
+	select {
+	case <-engineDone:
+		// Success - engine has shut down
+	case <-time.After(3 * time.Second):
 		t.Fatal("Engine did not shut down within timeout")
 	}
 }

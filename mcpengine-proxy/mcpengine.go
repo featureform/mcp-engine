@@ -29,8 +29,8 @@ type Config struct {
 
 type MCPEngine struct {
 	endpoint   string
-	inputFile  *os.File
-	outputFile *os.File
+	inputFile  io.Reader
+	outputFile io.Writer
 	useSse     bool
 	sseClient  sseClient
 	mcpPath    string
@@ -83,10 +83,13 @@ func (mcp *MCPEngine) Start(ctx context.Context) {
 }
 
 type worker interface {
-	Run(context.Context) error
+	Run(ctx context.Context, cancel context.CancelFunc) error
 }
 
 func (mcp *MCPEngine) runWorkersAndWait(ctx context.Context, workers map[string]worker, logger *zap.SugaredLogger) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	var wg sync.WaitGroup
 	wg.Add(len(workers))
 	for name, worker := range workers {
@@ -94,7 +97,7 @@ func (mcp *MCPEngine) runWorkersAndWait(ctx context.Context, workers map[string]
 		go func() {
 			defer wg.Done()
 			logger.Debugw("Starting worker", "worker-name", name)
-			err := constWorker.Run(ctx)
+			err := constWorker.Run(ctx, cancel)
 			mcp.logger.Infow("Worker exited with error", "worker-name", name, "err", err)
 		}()
 	}
@@ -108,15 +111,15 @@ type AuthError struct {
 
 // FileReader reads lines from a file and sends them to an output message channel.
 type FileReader struct {
-	file       *os.File
+	reader     io.Reader
 	outputChan chan string
 	logger     *zap.SugaredLogger
 }
 
 // NewFileReader constructs a new FileReader.
-func NewFileReader(file *os.File, outputChan chan string, logger *zap.SugaredLogger) *FileReader {
+func NewFileReader(reader io.Reader, outputChan chan string, logger *zap.SugaredLogger) *FileReader {
 	return &FileReader{
-		file:       file,
+		reader:     reader,
 		outputChan: outputChan,
 		logger:     logger,
 	}
@@ -125,27 +128,43 @@ func NewFileReader(file *os.File, outputChan chan string, logger *zap.SugaredLog
 // Run reads the file line by line and sends each line to the output channel.
 // It stops when the file is exhausted or when the context is cancelled.
 // The output channel is closed before returning.
-func (fr *FileReader) Run(ctx context.Context) error {
+func (fr *FileReader) Run(ctx context.Context, cancel context.CancelFunc) error {
 	fr.logger.Debug("Starting to read file")
 	defer close(fr.outputChan)
-	scanner := bufio.NewScanner(fr.file)
-	for scanner.Scan() {
-		// Respect context cancellation.
-		select {
-		case <-ctx.Done():
-			fr.logger.Info("FileReader canceled")
-			return ctx.Err()
-		default:
+
+	errChan := make(chan error, 1)
+
+	scanner := bufio.NewScanner(fr.reader)
+	go func() {
+		for scanner.Scan() {
+			// Respect context cancellation.
+			select {
+			case <-ctx.Done():
+				fr.logger.Info("FileReader canceled")
+				errChan <- ctx.Err()
+			default:
+			}
+			line := scanner.Text()
+			fr.logger.Debugw("Read line", "line", line)
+			fr.outputChan <- line
 		}
-		line := scanner.Text()
-		fr.logger.Debugw("Read line", "line", line)
-		fr.outputChan <- line
-	}
-	if err := scanner.Err(); err != nil {
-		fr.logger.Errorf("Error reading file: %v", err)
+		if err := scanner.Err(); err != nil {
+			fr.logger.Errorf("Error reading file: %v", err)
+			errChan <- err
+		} else {
+			errChan <- io.EOF
+			cancel()
+		}
+	}()
+
+	select {
+	case err := <-errChan:
+		fr.logger.Errorw("Error reading input", "err", err)
 		return err
+	case <-ctx.Done():
+		fr.logger.Info("FileReader canceled")
+		return ctx.Err()
 	}
-	return io.EOF
 }
 
 // HTTPPostSender waits for an endpoint from its endpoint channel and then posts
@@ -182,7 +201,7 @@ func NewHTTPPostSender(
 // Run waits to receive an endpoint from endpointChan and then continuously reads messages
 // from inputChan, posting each to the resolved endpoint. It stops when inputChan is closed
 // or when the context is cancelled.
-func (hs *HTTPPostSender) Run(ctx context.Context) error {
+func (hs *HTTPPostSender) Run(ctx context.Context, cancel context.CancelFunc) error {
 	hs.logger.Debug("Starting HTTPPostSender")
 	hs.logger.Debug("Waiting for POST path")
 	var endpointPath string
@@ -333,15 +352,15 @@ func createAuthError(id int, url string) JSONRPCResponse {
 
 // OutputProxy reads messages from an input channel and writes them to a file.
 type OutputProxy struct {
-	file      *os.File
+	writer    io.Writer
 	inputChan chan string
 	logger    *zap.SugaredLogger
 }
 
 // NewOutputProxy creates a new OutputProxy with the provided file, channel, and logger.
-func NewOutputProxy(file *os.File, inputChan chan string, logger *zap.SugaredLogger) *OutputProxy {
+func NewOutputProxy(writer io.Writer, inputChan chan string, logger *zap.SugaredLogger) *OutputProxy {
 	return &OutputProxy{
-		file:      file,
+		writer:    writer,
 		inputChan: inputChan,
 		logger:    logger,
 	}
@@ -350,8 +369,8 @@ func NewOutputProxy(file *os.File, inputChan chan string, logger *zap.SugaredLog
 // Run continuously reads from the input channel and writes each message to the file,
 // appending a newline after each message. It returns when the channel is closed or
 // the context is canceled.
-func (op *OutputProxy) Run(ctx context.Context) error {
-	writer := bufio.NewWriter(op.file)
+func (op *OutputProxy) Run(ctx context.Context, cancel context.CancelFunc) error {
+	writer := bufio.NewWriter(op.writer)
 	defer writer.Flush()
 
 	op.logger.Debug("Running output proxy")
@@ -406,7 +425,7 @@ func NewSSEWorker(client sseClient, endpointChan, outputChan chan string, logger
 
 // Run subscribes to the "messages" SSE stream, waits for the first relevant endpoint message,
 // sends that message to endpointChan, and then sends every SSE message to outputChan.
-func (sw *SSEWorker) Run(ctx context.Context) error {
+func (sw *SSEWorker) Run(ctx context.Context, cancel context.CancelFunc) error {
 	msgChan := make(chan *sse.Event)
 	go func() {
 		sw.logger.Debug("Subscribing to messages channel")

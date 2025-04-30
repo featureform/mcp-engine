@@ -37,16 +37,16 @@ def test_full_config():
     assert config.name == "full"
     assert config.version == "v1"
     assert config.description is not None
-    assert config.command == "ls"
+    # This happens before input templating, so the command still has
+    # templates in it.
+    assert config.command == "ls ${input1} ${input2}"
     assert config.requires == [
         Requirement(
             name="docker",
-            version="1.0",
             install_hint="docker install hint",
         ),
         Requirement(
             name="npx",
-            version="1.0",
             install_hint="npx install hint",
         ),
     ]

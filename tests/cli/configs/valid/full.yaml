@@ -1,0 +1,22 @@
+name: full
+version: v1
+description: This is a file that includes all optional sections
+requires:
+  - name: docker
+    install_hint: docker install hint
+  - name: npx
+    install_hint: npx install hint
+inputs:
+  - name: input1
+    type: text
+    message: Please input input1
+    default: input1-default
+  - name: input2
+    type: choice
+    message: Please input input2
+    default: input2-default
+    choices:
+      - input2-default
+      - another input
+      - something
+command: ls ${input1} ${input2}

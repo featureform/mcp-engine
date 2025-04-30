@@ -1,0 +1,4 @@
+name: wrong-version
+version: v0
+description: There is no version v0
+command: ls

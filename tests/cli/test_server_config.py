@@ -11,9 +11,10 @@ from mcpengine.cli.server import (
     prompt_command,
 )
 
-CONFIG_DIR_PATH = "./configs"
-VALID_CONFIG_DIR_PATH = "./configs/valid"
-INVALID_CONFIG_DIR_PATH = "./configs/invalid"
+CURRENT_PATH = path.dirname(__file__)
+CONFIG_DIR_PATH = path.join(CURRENT_PATH, "./configs")
+VALID_CONFIG_DIR_PATH = path.join(CONFIG_DIR_PATH, "valid")
+INVALID_CONFIG_DIR_PATH = path.join(CONFIG_DIR_PATH, "invalid")
 
 def test_empty_config():
     """Tests a minimal server config file to be parsed properly."""

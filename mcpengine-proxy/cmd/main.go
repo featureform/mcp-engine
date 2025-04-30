@@ -19,6 +19,7 @@ func main() {
 	ssePath := flag.String("sse_path", "/sse", "The path to append to hostname for an /sse connection")
 	mcpPath := flag.String("mcp_path", "/mcp", "The path to append to hostname for non-SSE POST")
 	debug := flag.Bool("debug", false, "Enable debug logging")
+	authListenPort := flag.Int("auth_port", 8181, "The port on which the auth server listens")
 	flag.Parse()
 
 	if *mode != "sse" && *mode != "http" {
@@ -55,6 +56,7 @@ func main() {
 		AuthConfig: &mcpengine.AuthConfig{
 			ClientID:     *clientId,
 			ClientSecret: *clientSecret,
+			ListenPort:   *authListenPort,
 		},
 		Logger: logger,
 	})

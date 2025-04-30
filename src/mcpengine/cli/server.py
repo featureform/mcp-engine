@@ -62,6 +62,8 @@ def _get_run_command(config: ServerConfig, inputs: dict[str, str]) -> str:
 
 def get_config(config_path: Path) -> ServerConfig:
     config = _load_config_file(config_path)
+    if config.version != "1.0":
+        raise ValueError(f"Unsupported version: {config.version}")
     return config
 
 

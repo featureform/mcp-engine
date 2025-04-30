@@ -37,6 +37,7 @@ from mcpengine.server.auth.backend import (
 )
 from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
 from mcpengine.server.auth.providers.config import (
+    OAUTH_PROTECTED_RESOURCE_METADATA_PATH,
     OAUTH_WELL_KNOWN_PATH,
     OPENID_WELL_KNOWN_PATH,
 )
@@ -595,6 +596,11 @@ class MCPEngine:
                 endpoint=self.handle_well_known,
                 methods=["GET", "OPTIONS"],
             ),
+            Route(
+                f"/{OAUTH_PROTECTED_RESOURCE_METADATA_PATH}",
+                endpoint=self.handle_protected_resource_metadata,
+                methods=["GET", "OPTIONS"],
+            ),
             Route(self.settings.sse_path, endpoint=handle_sse),
             Mount(self.settings.message_path, app=sse.handle_post_message),
         ]
@@ -626,6 +632,11 @@ class MCPEngine:
             Route(
                 f"/{OPENID_WELL_KNOWN_PATH}",
                 endpoint=self.handle_well_known,
+                methods=["GET", "OPTIONS"],
+            ),
+            Route(
+                f"/{OAUTH_PROTECTED_RESOURCE_METADATA_PATH}",
+                endpoint=self.handle_protected_resource_metadata,
                 methods=["GET", "OPTIONS"],
             ),
             Route(
@@ -671,6 +682,18 @@ class MCPEngine:
         except Exception as e:
             logger.error(f"Error getting prompt {name}: {e}")
             raise ValueError(str(e))
+
+    async def handle_protected_resource_metadata(self, _: Request) -> Response:
+        idp_config = self.settings.idp_config
+        if idp_config is None:
+            return Response(status_code=500, content="Invalid IdP configuration")
+        response = {
+            "resource_name": self.name,
+            "resource": idp_config.hostname,
+            "authorization_servers": [idp_config.issuer_url],
+            "scopes_supported": list(self.scopes),
+        }
+        return JSONResponse(response)
 
     async def handle_well_known(self, _: Request) -> Response:
         idp_config = self.settings.idp_config

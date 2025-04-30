@@ -13,8 +13,8 @@ TOKEN_VALIDATION_ENDPOINT = "https://oauth2.googleapis.com/tokeninfo"
 
 
 class GoogleIdpConfig(IdpConfig):
-    def __init__(self):
-        super().__init__(ISSUER_URL)
+    def __init__(self, *, hostname: str):
+        super().__init__(hostname=hostname, issuer_url=ISSUER_URL)
 
     async def validate_token(self, token: str) -> dict[str, Any]:
         async with httpx.AsyncClient() as client:

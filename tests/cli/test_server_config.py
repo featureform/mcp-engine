@@ -17,6 +17,7 @@ CONFIG_DIR_PATH = path.join(CURRENT_PATH, "./configs")
 VALID_CONFIG_DIR_PATH = path.join(CONFIG_DIR_PATH, "valid")
 INVALID_CONFIG_DIR_PATH = path.join(CONFIG_DIR_PATH, "invalid")
 
+
 def test_empty_config():
     """Tests a minimal server config file to be parsed properly."""
     config = get_config(Path(path.join(VALID_CONFIG_DIR_PATH, "empty.yaml")))
@@ -27,6 +28,7 @@ def test_empty_config():
     assert config.command == "ls"
     assert config.requires == []
     assert config.inputs == []
+
 
 def test_full_config():
     """Tests a server config with all optional sections to be parsed properly."""
@@ -43,36 +45,38 @@ def test_full_config():
             install_hint="docker install hint",
         ),
         Requirement(
-            name= "npx",
-            version= "1.0",
-            install_hint= "npx install hint",
-        )
+            name="npx",
+            version="1.0",
+            install_hint="npx install hint",
+        ),
     ]
     assert config.inputs == [
         Input(
-            name= "input1",
-            type= "text",
-            message= "Please input input1",
-            default= "input1-default",
+            name="input1",
+            type="text",
+            message="Please input input1",
+            default="input1-default",
         ),
         Input(
-            name= "input2",
-            type= "choice",
-            message= "Please input input2",
-            default= "input2-default",
-            choices= [
+            name="input2",
+            type="choice",
+            message="Please input input2",
+            default="input2-default",
+            choices=[
                 "input2-default",
                 "another input",
                 "something",
-            ]
-        )
+            ],
+        ),
     ]
+
 
 def test_invalid_configs():
     """Tests all the invalid configs to ensure that they throw an Exception."""
     for invalid_config in listdir(INVALID_CONFIG_DIR_PATH):
         with pytest.raises(Exception):
             get_config(Path(path.join(INVALID_CONFIG_DIR_PATH, invalid_config)))
+
 
 def test_command_template():
     """Tests that the templating in the run_command works after obtaining inputs."""
@@ -81,12 +85,12 @@ def test_command_template():
         version="v1",
         description="test",
         inputs=[
-            Input(name="input1", type= "text", message= "input1"),
-            Input(name="input2", type= "text", message= "input2"),
+            Input(name="input1", type="text", message="input1"),
+            Input(name="input2", type="text", message="input2"),
         ],
-        command="cat ${input1} ${input2}"
+        command="cat ${input1} ${input2}",
     )
-    prompt_return_value=  {
+    prompt_return_value = {
         "input1": "input1-value",
         "input2": "input2-value",
     }
@@ -97,4 +101,3 @@ def test_command_template():
 
         command = prompt_command(config)
         assert command == "cat input1-value input2-value"
-

@@ -490,8 +490,7 @@ def add(
         bool, typer.Option("--claude", help="Add the installation to Claude config.")
     ] = False,
 ):
-    """Adds an MCP server via a config file.
-    """
+    """Adds an MCP server via a config file."""
     config = get_config(path)
     command = prompt_command(config)
 

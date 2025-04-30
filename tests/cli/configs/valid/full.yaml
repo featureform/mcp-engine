@@ -3,10 +3,8 @@ version: v1
 description: This is a file that includes all optional sections
 requires:
   - name: docker
-    version: "1.0"
     install_hint: docker install hint
   - name: npx
-    version: "1.0"
     install_hint: npx install hint
 inputs:
   - name: input1
@@ -21,4 +19,4 @@ inputs:
       - input2-default
       - another input
       - something
-command: ls
+command: ls ${input1} ${input2}

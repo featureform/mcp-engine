@@ -10,7 +10,6 @@ from questionary import prompt
 
 class Requirement(BaseModel):
     name: str
-    version: str
     install_hint: str
 
 
@@ -71,7 +70,10 @@ def get_config(config_path: Path) -> ServerConfig:
 def prompt_command(config: ServerConfig) -> str:
     for requirement in config.requires:
         if which(requirement.name) is None:
-            raise ValueError(f"Requirement {requirement.name} is not installed")
+            raise ValueError(
+                f"Requirement {requirement.name} is not installed: "
+                f"{requirement.install_hint}"
+            )
 
     inputs = _prompt_inputs(config.inputs)
     run_command = _get_run_command(config, inputs)

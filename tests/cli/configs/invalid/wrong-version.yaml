@@ -1,4 +1,4 @@
-name: empty
+name: wrong-version
 version: v0
-description: Is an empty file config
+description: There is no version v0
 command: ls

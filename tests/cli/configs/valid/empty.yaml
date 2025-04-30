@@ -1,0 +1,4 @@
+name: empty
+version: v1
+description: Is an empty file config
+command: ls

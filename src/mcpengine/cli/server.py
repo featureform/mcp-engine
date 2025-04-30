@@ -4,7 +4,7 @@ from string import Template
 from typing import Any
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from questionary import prompt
 
 
@@ -26,8 +26,8 @@ class ServerConfig(BaseModel):
     name: str
     version: str
     description: str
-    requires: list[Requirement]
-    inputs: list[Input]
+    requires: list[Requirement] = Field(default_factory=list)
+    inputs: list[Input] = Field(default_factory=list)
     command: str
 
 
@@ -63,7 +63,7 @@ def _get_run_command(config: ServerConfig, inputs: dict[str, str]) -> str:
 
 def get_config(config_path: Path) -> ServerConfig:
     config = _load_config_file(config_path)
-    if config.version != "1.0":
+    if config.version != "v1":
         raise ValueError(f"Unsupported version: {config.version}")
     return config
 

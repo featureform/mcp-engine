@@ -112,7 +112,8 @@ def install_proxy(
         "-i",
         "--rm",
         "-p",
-        f"{port}:8181",
+        f"-auth_port={port}",
+        f"{port}:{port}",
         PROXY_IMAGE_NAME,
         f"-host={host_endpoint}",
     ]

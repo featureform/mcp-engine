@@ -1,4 +1,5 @@
 from pathlib import Path
+from shutil import which
 from string import Template
 from typing import Any
 
@@ -68,6 +69,10 @@ def get_config(config_path: Path) -> ServerConfig:
 
 
 def prompt_command(config: ServerConfig) -> str:
+    for requirement in config.requires:
+        if which(requirement.name) is None:
+            raise ValueError(f"Requirement {requirement.name} is not installed")
+
     inputs = _prompt_inputs(config.inputs)
     run_command = _get_run_command(config, inputs)
     return run_command

@@ -10,16 +10,25 @@ from async_lru import alru_cache
 
 OPENID_WELL_KNOWN_PATH: str = ".well-known/openid-configuration"
 OAUTH_WELL_KNOWN_PATH: str = ".well-known/oauth-authorization-server"
+OAUTH_PROTECTED_RESOURCE_METADATA_PATH: str = ".well-known/oauth-protected-resource"
 
 METADATA_CACHE_TTL = 300  # in seconds
 
 
 class IdpConfig:
+    hostname: str
     issuer_url: str
     token_validation_endpoint: str | None
 
-    def __init__(self, issuer_url: str, token_validation_endpoint: str | None = None):
+    def __init__(
+            self,
+            *,
+            hostname: str,
+            issuer_url: str,
+            token_validation_endpoint: str | None = None,
+    ):
         super().__init__()
+        self.hostname = hostname
         self.issuer_url = issuer_url
         self.token_validation_endpoint = token_validation_endpoint
 

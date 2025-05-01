@@ -13,6 +13,7 @@ def mock_bearer_token_backend():
     def _create_mock(application_scopes, scopes_mapping, token):
         backend = BearerTokenBackend(
             idp_config=IdpConfig(
+                hostname="http://localhost:8000",
                 issuer_url="http://some-issuer",
             ),
             scopes=application_scopes,

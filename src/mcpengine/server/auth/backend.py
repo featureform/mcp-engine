@@ -18,7 +18,10 @@ from starlette.responses import Response
 import mcpengine
 from mcpengine.server.auth.context import UserContext
 from mcpengine.server.auth.errors import AuthenticationError, AuthorizationError
-from mcpengine.server.auth.providers.config import IdpConfig
+from mcpengine.server.auth.providers.config import (
+    OAUTH_PROTECTED_RESOURCE_METADATA_PATH,
+    IdpConfig,
+)
 from mcpengine.server.mcpengine.utilities.logging import get_logger
 from mcpengine.types import JSONRPCMessage
 
@@ -96,7 +99,17 @@ class BearerTokenBackend(AuthenticationBackend):
         # (and most OAuth IdPs should also support it).
         if len(scopes) == 0:
             scopes = ["openid"]
-        bearer = f'Bearer scope="{" ".join(scopes)}"'
+
+        resource_metadata_url = (
+            f"{self.idp_config.hostname}/"
+            f"{OAUTH_PROTECTED_RESOURCE_METADATA_PATH}"
+        )
+
+        bearer = (
+            'Bearer '
+            f'resource_metadata="{resource_metadata_url}", '
+            f'scope="{" ".join(scopes)}"'
+        )
 
         if isinstance(err, AuthorizationError):
             status_code = 403

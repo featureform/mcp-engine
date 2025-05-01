@@ -69,11 +69,10 @@ class NoAuthBackend(AuthenticationBackend):
 
 
 class BearerTokenBackend(AuthenticationBackend):
-    # TODO: Better way of doing this
-    METHODS_CHECK: set[str] = {
-        "tools/call",
-        "resources/read",
-        "prompts/get",
+    LIST_CALLS: set[str] = {
+        "tools/list",
+        "resources/list",
+        "prompts/list",
     }
 
     idp_config: IdpConfig
@@ -130,7 +129,13 @@ class BearerTokenBackend(AuthenticationBackend):
             return None
         req_message = message.root
 
-        if req_message.method not in self.METHODS_CHECK:
+        if req_message.method == "initialize":
+            return None
+
+        if (
+            self.idp_config.allow_unauthenticated_list
+            and req_message.method in self.LIST_CALLS
+        ):
             return None
 
         try:

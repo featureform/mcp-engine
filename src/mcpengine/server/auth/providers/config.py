@@ -19,18 +19,21 @@ class IdpConfig:
     hostname: str
     issuer_url: str
     token_validation_endpoint: str | None
+    allow_unauthenticated_list: bool = False
 
     def __init__(
-            self,
-            *,
-            hostname: str,
-            issuer_url: str,
-            token_validation_endpoint: str | None = None,
+        self,
+        *,
+        hostname: str,
+        issuer_url: str,
+        token_validation_endpoint: str | None = None,
+        allow_unauthenticated_list: bool = False,
     ):
         super().__init__()
         self.hostname = hostname
         self.issuer_url = issuer_url
         self.token_validation_endpoint = token_validation_endpoint
+        self.allow_unauthenticated_list = allow_unauthenticated_list
 
     @alru_cache(ttl=METADATA_CACHE_TTL)
     async def get_metadata(self) -> Any:

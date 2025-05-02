@@ -9,7 +9,7 @@ from mcpengine.cli.server import (
     Requirement,
     ServerConfig,
     get_config,
-    prompt_command,
+    prompt_config,
 )
 
 CURRENT_PATH = path.dirname(__file__)
@@ -99,5 +99,5 @@ def test_command_template():
     with patch(prompt_input_path) as mock_prompt_inputs:
         mock_prompt_inputs.return_value = prompt_return_value
 
-        command = prompt_command(config)
-        assert command == "cat input1-value input2-value"
+        config = prompt_config(config)
+        assert config.command == "cat input1-value input2-value"

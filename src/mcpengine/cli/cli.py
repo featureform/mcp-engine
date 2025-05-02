@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Annotated
 
 from mcpengine.cli.docker import PROXY_IMAGE_NAME
-from mcpengine.cli.server import get_config, prompt_command
+from mcpengine.cli.server import get_config, prompt_config
 
 try:
     import docker
@@ -26,11 +26,6 @@ try:
 except ImportError:
     print("Error: mcpengine.server.mcpengine is not installed or not in PYTHONPATH")
     sys.exit(1)
-
-try:
-    import dotenv
-except ImportError:
-    dotenv = None
 
 logger = get_logger("cli")
 
@@ -57,16 +52,6 @@ def _get_npx_command():
         return None
     return "npx"  # On Unix-like systems, just use npx
 
-
-def _parse_env_var(env_var: str) -> tuple[str, str]:
-    """Parse environment variable string in format KEY=VALUE."""
-    if "=" not in env_var:
-        logger.error(
-            f"Invalid environment variable format: {env_var}. Must be KEY=VALUE"
-        )
-        sys.exit(1)
-    key, value = env_var.split("=", 1)
-    return key.strip(), value.strip()
 
 
 def _build_uv_command(
@@ -357,9 +342,9 @@ def install(
 ):
     """Adds an MCP server via a config file."""
     config = get_config(path)
-    command = prompt_command(config)
+    config = prompt_config(config)
 
-    split_command = shlex.split(command)
+    split_command = shlex.split(config.command)
     command, args = split_command[0], split_command[1:]
 
     # This check is here for when future installation targets are added.

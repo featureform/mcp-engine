@@ -341,16 +341,16 @@ def install(
     ] = False,
 ):
     """Adds an MCP server via a config file."""
+
+    if not install_claude:
+        logger.error("No installation target specified.")
+        sys.exit(1)
+
     config = get_config(path)
     config = prompt_config(config)
 
     split_command = shlex.split(config.command)
     command, args = split_command[0], split_command[1:]
-
-    # This check is here for when future installation targets are added.
-    if not install_claude:
-        logger.warning("No installation target specified.")
-        sys.exit(1)
 
     if install_claude:
         if claude.update_server_config(
@@ -358,6 +358,7 @@ def install(
             entry={
                 "command": command,
                 "args": args,
+                "env": config.env,
             },
         ):
             logger.info(f"Successfully installed {config.name} in Claude app")
@@ -419,6 +420,10 @@ def proxy(
     Environment variables are preserved once added and only updated if new values
     are explicitly provided.
     """
+    if not install_claude:
+        logger.error("No installation target specified.")
+        sys.exit(1)
+
     logger.debug(
         "Installing server",
         extra={
@@ -436,10 +441,6 @@ def proxy(
     logger.debug("Pulling latest version of mcpengine-proxy")
     client.images.pull(PROXY_IMAGE_NAME, "latest")
 
-    # This check is here for when future installation targets are added.
-    if not install_claude:
-        logger.warning("No installation target specified.")
-        sys.exit(1)
 
     if install_claude:
         if claude.install_proxy(

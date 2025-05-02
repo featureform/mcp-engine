@@ -1,0 +1,13 @@
+name: notion
+version: v1
+description: Official Notion MCP server
+requires:
+  - name: npx
+    install_hint: See https://docs.npmjs.com/ for installation details on npm (which includes npx)
+inputs:
+  - name: token
+    type: text
+    message: Input the Bearer Token from your integration (more details https://developers.notion.com/docs/authorization)
+command: npx -y @notionhq/notion-mcp-server
+env:
+  OPENAPI_MCP_HEADERS: "{\"Authorization\": \"Bearer ${token}\", \"Notion-Version\": \"2022-06-28\" }"

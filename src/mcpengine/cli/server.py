@@ -1,3 +1,4 @@
+import os
 from importlib import resources
 from pathlib import Path
 from shutil import which
@@ -40,13 +41,23 @@ class ServerConfig(BaseModel):
             self.env[key] = template_string.safe_substitute(**inputs)
 
 
-def _load_config_file(config_path: Path) -> ServerConfig:
+def get_builtin_config_path(config_name: str) -> Path:
+    filename = config_name + ".yaml"
+    with resources.files("mcpengine.cli.configs").joinpath(filename) as config_path:
+        return config_path
+
+
+def _load_config_file(config_path: Path) -> dict[str, Any]:
     try:
+        builtin_config_path = get_builtin_config_path(str(config_path))
+        if os.path.isfile(builtin_config_path):
+            with open(builtin_config_path) as config_file:
+                return yaml.safe_load(config_file)
+
         with open(config_path) as file:
-            data = yaml.safe_load(file)
-            return ServerConfig(**data)
+            return yaml.safe_load(file)
     except Exception as e:
-        raise Exception(f"Failed to load configuration from {config_path}") from e
+        raise Exception(f"Config '{config_path}' not found") from e
 
 
 def _prompt_inputs(inputs: list[Input]) -> dict[str, str]:
@@ -64,22 +75,9 @@ def _prompt_inputs(inputs: list[Input]) -> dict[str, str]:
     return prompt(questions)
 
 
-def get_builtin_config(config_name):
-    """
-    Get a builtin config file by name.
-
-    Args:
-        config_name: Name of the config file (without path)
-
-    Returns:
-        Path to the config file
-    """
-    with resources.files("mcpengine.cli.configs").joinpath(config_name) as config_path:
-        return str(config_path)
-
-
 def get_config(config_path: Path) -> ServerConfig:
-    config = _load_config_file(config_path)
+    file_data = _load_config_file(config_path)
+    config = ServerConfig(**file_data)
     if config.version != "v1":
         raise ValueError(f"Unsupported version: {config.version}")
     return config

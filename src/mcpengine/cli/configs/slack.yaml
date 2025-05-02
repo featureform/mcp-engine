@@ -1,0 +1,17 @@
+name: slack
+version: v1
+description: Official Slack MCP server
+requires:
+  - name: docker
+    install_hint: See https://docs.docker.com/engine/install/ for installation details
+inputs:
+  - name: token
+    type: text
+    message: Input the bot token (see https://api.slack.com/docs/apps for details on creating an app)
+  - name: team_id
+    type: text
+    message: Input the Team ID
+command: docker run -i --rm -e SLACK_BOT_TOKEN -e SLACK_TEAM_ID -e SLACK_CHANNEL_IDS mcp/slack
+env:
+  SLACK_BOT_TOKEN: ${token}
+  SLACK_TEAM_ID: ${team_id}

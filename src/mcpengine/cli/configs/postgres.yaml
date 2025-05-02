@@ -1,6 +1,6 @@
 name: postgres
 version: v1
-description: Local Postgres MCP server
+description: Postgres MCP server
 requires:
   - name: docker
     install_hint: See https://docs.docker.com/engine/install/ for installation details

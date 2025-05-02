@@ -43,8 +43,9 @@ class ServerConfig(BaseModel):
 
 def get_builtin_config_path(config_name: str) -> Path:
     filename = config_name + ".yaml"
-    with resources.files("mcpengine.cli.configs").joinpath(filename) as config_path:
-        return config_path
+    traversable = resources.files("mcpengine.cli.configs") / filename
+    with resources.as_file(traversable) as path:
+        return path
 
 
 def _load_config_file(config_path: Path) -> dict[str, Any]:

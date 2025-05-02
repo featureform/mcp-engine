@@ -28,10 +28,11 @@ def test_empty_config():
     assert config.command == "ls"
     assert config.requires == []
     assert config.inputs == []
+    assert config.env == {}
 
 
 def test_full_config():
-    """Tests a server config with all optional sections to be parsed properly."""
+    """Tests a server config is parsed and templated properly."""
     config = get_config(Path(path.join(VALID_CONFIG_DIR_PATH, "full.yaml")))
 
     assert config.name == "full"
@@ -40,6 +41,10 @@ def test_full_config():
     # This happens before input templating, so the command still has
     # templates in it.
     assert config.command == "ls ${input1} ${input2}"
+    assert config.env == {
+        "env1": "${input1}-value",
+        "env2": "${input2}-value",
+    }
     assert config.requires == [
         Requirement(
             name="docker",
@@ -69,6 +74,17 @@ def test_full_config():
             ],
         ),
     ]
+
+    config.template_config({
+        "input1": "template1",
+        "input2": "template2",
+    })
+
+    assert config.command == "ls template1 template2"
+    assert config.env == {
+        "env1": "template1-value",
+        "env2": "template2-value",
+    }
 
 
 def test_invalid_configs():

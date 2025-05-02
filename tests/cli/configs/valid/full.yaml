@@ -20,3 +20,6 @@ inputs:
       - another input
       - something
 command: ls ${input1} ${input2}
+env:
+  env1: ${input1}-value
+  env2: ${input2}-value

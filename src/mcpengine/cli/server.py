@@ -1,3 +1,4 @@
+from importlib import resources
 from pathlib import Path
 from shutil import which
 from string import Template
@@ -62,6 +63,19 @@ def _prompt_inputs(inputs: list[Input]) -> dict[str, str]:
 
     return prompt(questions)
 
+
+def get_builtin_config(config_name):
+    """
+    Get a builtin config file by name.
+
+    Args:
+        config_name: Name of the config file (without path)
+
+    Returns:
+        Path to the config file
+    """
+    with resources.files("mcpengine.cli.configs").joinpath(config_name) as config_path:
+        return str(config_path)
 
 
 def get_config(config_path: Path) -> ServerConfig:

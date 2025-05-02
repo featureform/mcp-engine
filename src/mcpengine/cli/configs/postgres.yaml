@@ -1,0 +1,11 @@
+name: postgres
+version: v1
+description: Local Postgres MCP server
+requires:
+  - name: docker
+    install_hint: See https://docs.docker.com/engine/install/ for installation details
+inputs:
+  - name: uri
+    type: text
+    message: Input the Postgres connection string URI (ex. postgresql://localhost:5432/mydb)
+command: docker run -i --rm mcp/postgres ${uri}

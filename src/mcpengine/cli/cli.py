@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Annotated
 
 from mcpengine.cli.docker import PROXY_IMAGE_NAME
-from mcpengine.cli.server import get_config, prompt_command
+from mcpengine.cli.server import get_config, prompt_config
 
 try:
     import docker
@@ -26,11 +26,6 @@ try:
 except ImportError:
     print("Error: mcpengine.server.mcpengine is not installed or not in PYTHONPATH")
     sys.exit(1)
-
-try:
-    import dotenv
-except ImportError:
-    dotenv = None
 
 logger = get_logger("cli")
 
@@ -57,16 +52,6 @@ def _get_npx_command():
         return None
     return "npx"  # On Unix-like systems, just use npx
 
-
-def _parse_env_var(env_var: str) -> tuple[str, str]:
-    """Parse environment variable string in format KEY=VALUE."""
-    if "=" not in env_var:
-        logger.error(
-            f"Invalid environment variable format: {env_var}. Must be KEY=VALUE"
-        )
-        sys.exit(1)
-    key, value = env_var.split("=", 1)
-    return key.strip(), value.strip()
 
 
 def _build_uv_command(
@@ -341,148 +326,13 @@ def run(
         sys.exit(1)
 
 
-@app.command()
-def install(
-    file_spec: str = typer.Argument(
-        ...,
-        help="Python file to run, optionally with :object suffix",
-    ),
-    server_name: Annotated[
-        str | None,
-        typer.Option(
-            "--name",
-            "-n",
-            help="Custom name for the server (defaults to server's name attribute or"
-            " file name)",
-        ),
-    ] = None,
-    with_editable: Annotated[
-        Path | None,
-        typer.Option(
-            "--with-editable",
-            "-e",
-            help="Directory containing pyproject.toml to install in editable mode",
-            exists=True,
-            file_okay=False,
-            resolve_path=True,
-        ),
-    ] = None,
-    with_packages: Annotated[
-        list[str],
-        typer.Option(
-            "--with",
-            help="Additional packages to install",
-        ),
-    ] = [],
-    env_vars: Annotated[
-        list[str],
-        typer.Option(
-            "--env-var",
-            "-v",
-            help="Environment variables in KEY=VALUE format",
-        ),
-    ] = [],
-    env_file: Annotated[
-        Path | None,
-        typer.Option(
-            "--env-file",
-            "-f",
-            help="Load environment variables from a .env file",
-            exists=True,
-            file_okay=True,
-            dir_okay=False,
-            resolve_path=True,
-        ),
-    ] = None,
-) -> None:
-    """Install a MCP server in the Claude desktop app.
-
-    Environment variables are preserved once added and only updated if new values
-    are explicitly provided.
-    """
-    file, server_object = _parse_file_path(file_spec)
-
-    logger.debug(
-        "Installing server",
-        extra={
-            "file": str(file),
-            "server_name": server_name,
-            "server_object": server_object,
-            "with_editable": str(with_editable) if with_editable else None,
-            "with_packages": with_packages,
-        },
-    )
-
-    if not claude.get_claude_config_path():
-        logger.error("Claude app not found")
-        sys.exit(1)
-
-    # Try to import server to get its name, but fall back to file name if dependencies
-    # missing
-    name = server_name
-    server = None
-    if not name:
-        try:
-            server = _import_server(file, server_object)
-            name = server.name
-        except (ImportError, ModuleNotFoundError) as e:
-            logger.debug(
-                "Could not import server (likely missing dependencies), using file"
-                " name",
-                extra={"error": str(e)},
-            )
-            name = file.stem
-
-    # Get server dependencies if available
-    server_dependencies = getattr(server, "dependencies", []) if server else []
-    if server_dependencies:
-        with_packages = list(set(with_packages + server_dependencies))
-
-    # Process environment variables if provided
-    env_dict: dict[str, str] | None = None
-    if env_file or env_vars:
-        env_dict = {}
-        # Load from .env file if specified
-        if env_file:
-            if dotenv:
-                try:
-                    env_dict |= {
-                        k: v
-                        for k, v in dotenv.dotenv_values(env_file).items()
-                        if v is not None
-                    }
-                except Exception as e:
-                    logger.error(f"Failed to load .env file: {e}")
-                    sys.exit(1)
-            else:
-                logger.error("python-dotenv is not installed. Cannot load .env file.")
-                sys.exit(1)
-
-        # Add command line environment variables
-        for env_var in env_vars:
-            key, value = _parse_env_var(env_var)
-            env_dict[key] = value
-
-    if claude.update_claude_config(
-        file_spec,
-        name,
-        with_editable=with_editable,
-        with_packages=with_packages,
-        env_vars=env_dict,
-    ):
-        logger.info(f"Successfully installed {name} in Claude app")
-    else:
-        logger.error(f"Failed to install {name} in Claude app")
-        sys.exit(1)
-
-
 class TransportMode(str, Enum):
     http = "http"
     sse = "sse"
 
 
 @app.command()
-def add(
+def install(
     path: Annotated[
         Path, typer.Argument(help="The path of the MCP server file config to add.")
     ],
@@ -491,16 +341,16 @@ def add(
     ] = False,
 ):
     """Adds an MCP server via a config file."""
-    config = get_config(path)
-    command = prompt_command(config)
 
-    split_command = shlex.split(command)
-    command, args = split_command[0], split_command[1:]
-
-    # This check is here for when future installation targets are added.
     if not install_claude:
-        logger.warning("No installation target specified.")
+        logger.error("No installation target specified.")
         sys.exit(1)
+
+    config = get_config(path)
+    config = prompt_config(config)
+
+    split_command = shlex.split(config.command)
+    command, args = split_command[0], split_command[1:]
 
     if install_claude:
         if claude.update_server_config(
@@ -508,6 +358,7 @@ def add(
             entry={
                 "command": command,
                 "args": args,
+                "env": config.env,
             },
         ):
             logger.info(f"Successfully installed {config.name} in Claude app")
@@ -569,6 +420,10 @@ def proxy(
     Environment variables are preserved once added and only updated if new values
     are explicitly provided.
     """
+    if not install_claude:
+        logger.error("No installation target specified.")
+        sys.exit(1)
+
     logger.debug(
         "Installing server",
         extra={
@@ -586,10 +441,6 @@ def proxy(
     logger.debug("Pulling latest version of mcpengine-proxy")
     client.images.pull(PROXY_IMAGE_NAME, "latest")
 
-    # This check is here for when future installation targets are added.
-    if not install_claude:
-        logger.warning("No installation target specified.")
-        sys.exit(1)
 
     if install_claude:
         if claude.install_proxy(

@@ -73,6 +73,9 @@ Homepage = "https://www.featureform.com"
 Repository = "https://github.com/featureform/mcp-engine"
 Issues = "https://github.com/featureform/mcp-engine/issues"
 
+[tool.hatch.build]
+include = ["src/mcpengine/cli/configs/*.yaml"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcpengine"]
 
